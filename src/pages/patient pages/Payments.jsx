@@ -1,0 +1,689 @@
+import React, { useState, useEffect } from 'react';
+import { Calendar, CreditCard, DollarSign, Package, Truck, Plus, Receipt, CheckCircle, Clock, AlertCircle } from 'lucide-react';
+import Layout from "../../components/patient components/Layout";
+import config from "../../config";
+import axios from "axios";
+
+const Payments = () => {
+  const [paymentsData, setPaymentsData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [payingBill, setPayingBill] = useState(null);
+  const [isRazorpayLoaded, setIsRazorpayLoaded] = useState(false);
+  const [paymentStatus, setPaymentStatus] = useState(null);
+  const [address, setAddress] = useState('');
+const [isEditingAddress, setIsEditingAddress] = useState(false);
+const [addressLoading, setAddressLoading] = useState(false);
+const [addressError, setAddressError] = useState(null);
+  const [errorMessage, setErrorMessage] = useState("");
+  const API_URL = config.API_URL;
+
+  // Load Razorpay Script
+  useEffect(() => {
+    const script = document.createElement("script");
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.async = true;
+    script.onload = () => setIsRazorpayLoaded(true);
+    script.onerror = () => console.error("Razorpay script failed to load");
+    document.body.appendChild(script);
+
+    return () => {
+      if (document.body.contains(script)) {
+        document.body.removeChild(script);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+  const fetchAddress = async () => {
+    try {
+      const userId = localStorage.getItem('userId');
+      if (!userId) return;
+
+      const response = await fetch(`${API_URL}/api/patient/${userId}/address`);
+      if (response.ok) {
+        const data = await response.json();
+        setAddress(data.address || '');
+      }
+    } catch (err) {
+      console.error('Error fetching address:', err);
+    }
+  };
+
+  fetchAddress();
+}, [API_URL]);
+
+  useEffect(() => {
+    const fetchPayments = async () => {
+      try {
+        // Get userId from localStorage
+        const userId = localStorage.getItem('userId');
+        
+        if (!userId) {
+          throw new Error('User ID not found in localStorage');
+        }
+
+        const response = await fetch(`${API_URL}/api/patient/${userId}/payments`);
+        
+        if (!response.ok) {
+          throw new Error(`Failed to fetch payments: ${response.status} ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        
+        // Validate and sanitize data structure
+        const sanitizedData = {
+          summary: {
+            totalAmount: data.summary?.totalAmount || 0,
+            amountPaid: data.summary?.amountPaid || 0,
+            amountDue: data.summary?.amountDue || 0
+          },
+          allBills: Array.isArray(data.allBills) ? data.allBills : []
+        };
+        
+        setPaymentsData(sanitizedData);
+      } catch (err) {
+        console.error('Error fetching payments:', err);
+        setError(err.message);
+        
+        // Set default empty state
+        setPaymentsData({
+          summary: {
+            totalAmount: 0,
+            amountPaid: 0,
+            amountDue: 0
+          },
+          allBills: []
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPayments();
+  }, [API_URL]);
+
+  // Create Razorpay order for prescription
+  const createPrescriptionOrder = async (prescriptionId, amount) => {
+    try {
+      const token = localStorage.getItem("token");
+      
+      if (!token) {
+        throw new Error("Authentication token not found");
+      }
+
+      if (!amount || amount <= 0) {
+        throw new Error("Invalid amount for payment");
+      }
+
+      const orderRes = await axios.post(
+        `${API_URL}/api/payments/create-prescription-order`,
+        { prescriptionId, amount },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      return orderRes.data;
+    } catch (err) {
+      console.error("Error creating prescription order:", err);
+      
+      if (err.response?.status === 401) {
+        throw new Error("Authentication failed. Please login again.");
+      } else if (err.response?.status === 404) {
+        throw new Error("Prescription not found.");
+      } else if (err.response?.data?.message) {
+        throw new Error(err.response.data.message);
+      }
+      
+      throw err;
+    }
+  };
+
+  // Verify payment for prescription
+  const verifyPrescriptionPayment = async (paymentResponse, prescriptionId) => {
+    try {
+      const token = localStorage.getItem("token");
+
+      if (!token) {
+        throw new Error("Authentication token not found");
+      }
+
+      // Validate payment response
+      if (!paymentResponse.razorpay_order_id || !paymentResponse.razorpay_payment_id || !paymentResponse.razorpay_signature) {
+        throw new Error("Invalid payment response");
+      }
+
+      const payload = {
+        razorpay_order_id: paymentResponse.razorpay_order_id,
+        razorpay_payment_id: paymentResponse.razorpay_payment_id,
+        razorpay_signature: paymentResponse.razorpay_signature,
+        prescriptionId,
+      };
+
+      console.log("🔍 Sending prescription payment verification:", payload);
+
+      const verifyRes = await axios.post(
+        `${API_URL}/api/payments/verify-prescription-payment`,
+        payload,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      console.log("✅ Prescription payment verification successful:", verifyRes.data);
+      return verifyRes.data;
+    } catch (err) {
+      console.error("❌ Prescription payment verification failed:", err);
+      
+      if (err.response?.status === 401) {
+        throw new Error("Authentication failed. Please login again.");
+      } else if (err.response?.data?.message) {
+        throw new Error(err.response.data.message);
+      }
+      
+      throw err;
+    }
+  };
+
+  // Get user info for payment prefill
+  const getUserInfo = () => {
+    try {
+      const token = localStorage.getItem("token");
+      if (token) {
+        const decoded = JSON.parse(atob(token.split(".")[1]));
+        return decoded;
+      }
+    } catch (error) {
+      console.error("Error decoding token:", error);
+    }
+    return {
+      name: "Patient",
+      email: "patient@example.com",
+      phone: "9000000000"
+    };
+  };
+
+  const handlePayment = async (prescriptionId) => {
+    if (!isRazorpayLoaded) {
+      setErrorMessage("Payment system is loading. Please wait...");
+      return;
+    }
+
+    if (!paymentsData?.allBills) {
+      setErrorMessage("Payment data not available. Please refresh the page.");
+      return;
+    }
+
+    setPayingBill(prescriptionId);
+    setErrorMessage("");
+    setPaymentStatus(null);
+
+    try {
+      // Find the bill to get the amount
+      const bill = paymentsData.allBills.find(b => b.prescriptionId === prescriptionId);
+      if (!bill) {
+        throw new Error("Bill not found");
+      }
+
+      if (!bill.totalCharges || bill.totalCharges <= 0) {
+        throw new Error("Invalid bill amount");
+      }
+
+      console.log("💰 Starting payment for prescription:", prescriptionId, "Amount:", bill.totalCharges);
+
+      // Step 1: Create Razorpay order
+      const orderResponse = await createPrescriptionOrder(prescriptionId, bill.totalCharges);
+      
+      if (!orderResponse?.success || !orderResponse?.order?.id) {
+        throw new Error("Failed to create payment order");
+      }
+
+      console.log("📦 Order created:", orderResponse.order.id);
+
+      // Get user info for prefill
+      const userInfo = getUserInfo();
+
+      // Step 2: Open Razorpay payment modal
+      const options = {
+        key: "rzp_test_4yi0hOj6P7akiv", // Use the same key from your appointment booking
+        amount: orderResponse.order.amount,
+        currency: "INR",
+        name: "Prescription Payment",
+        description: `Payment for Prescription ${prescriptionId.slice(-8)}`,
+        order_id: orderResponse.order.id,
+        handler: async (response) => {
+          try {
+            setPaymentStatus("verifying");
+            console.log("🔄 Verifying payment:", response);
+            
+            await verifyPrescriptionPayment(response, prescriptionId);
+            setPaymentStatus("verified");
+            
+            // Update the bill status locally with error handling
+            setPaymentsData(prev => {
+              if (!prev || !prev.allBills) return prev;
+              
+              const updatedBills = prev.allBills.map(bill =>
+                bill.prescriptionId === prescriptionId
+                  ? { ...bill, isPaid: true }
+                  : bill
+              );
+              
+              return {
+                ...prev,
+                allBills: updatedBills,
+                summary: {
+                  ...prev.summary,
+                  amountPaid: (prev.summary?.amountPaid || 0) + bill.totalCharges,
+                  amountDue: Math.max(0, (prev.summary?.amountDue || 0) - bill.totalCharges)
+                }
+              };
+            });
+
+            console.log("✅ Payment completed successfully!");
+            
+          } catch (err) {
+            setPaymentStatus("failed");
+            setErrorMessage("Payment verification failed. Please contact support.");
+            console.error("Payment verification error:", err);
+          }
+        },
+        prefill: {
+          name: userInfo.name,
+          email: userInfo.email,
+          contact: userInfo.phone,
+        },
+        theme: {
+          color: "#0e76a8",
+        },
+        modal: {
+          ondismiss: () => {
+            setPaymentStatus("cancelled");
+            setErrorMessage("Payment was cancelled.");
+            setPayingBill(null);
+          },
+        },
+      };
+
+      if (!window.Razorpay) {
+        throw new Error("Razorpay is not loaded. Please refresh the page and try again.");
+      }
+
+      const rzp = new window.Razorpay(options);
+      rzp.open();
+
+    } catch (err) {
+      console.error("Payment error:", err);
+      let errorMsg = "Payment failed. Please try again.";
+      
+      if (err.response?.data?.message) {
+        errorMsg = err.response.data.message;
+      } else if (err.response?.data?.error) {
+        errorMsg = err.response.data.error;
+      } else if (err.message) {
+        errorMsg = err.message;
+      }
+
+      setErrorMessage(errorMsg);
+      setPaymentStatus("failed");
+      setPayingBill(null);
+    }
+  };
+
+  const formatDate = (dateString) => {
+    try {
+      if (!dateString) return 'N/A';
+      return new Date(dateString).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return 'Invalid Date';
+    }
+  };
+
+  const formatCurrency = (amount) => {
+    try {
+      if (typeof amount !== 'number' || isNaN(amount)) return '₹0.00';
+      return `₹${amount.toFixed(2)}`;
+    } catch (error) {
+      console.error('Error formatting currency:', error);
+      return '₹0.00';
+    }
+  };
+
+const handleUpdateAddress = async () => {
+  setAddressLoading(true);
+  setAddressError(null);
+  
+  try {
+    const userId = localStorage.getItem('userId');
+    if (!userId) {
+      throw new Error('User ID not found');
+    }
+
+    const response = await fetch(`${API_URL}/api/patient/${userId}/address`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ address: address.trim() }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to update address');
+    }
+
+    const data = await response.json();
+    setAddress(data.address || address.trim());
+    setIsEditingAddress(false);
+  } catch (err) {
+    console.error('Error updating address:', err);
+    setAddressError(err.message);
+  } finally {
+    setAddressLoading(false);
+  }
+};
+
+  // Safe access to payment data
+  const safePaymentsData = paymentsData || {
+    summary: { totalAmount: 0, amountPaid: 0, amountDue: 0 },
+    allBills: []
+  };
+
+  if (loading) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center min-h-64">
+          <div className="relative">
+            <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-100 border-t-blue-600"></div>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <CreditCard className="h-6 w-6 text-blue-600" />
+            </div>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  return (
+    <Layout>
+      <div className="pt-6 px-4 space-y-6 max-w-7xl mx-auto">
+        {/* Header */}
+      
+          <h1 className="text-2xl font-bold text-black-600 mb-1">Medicine Payment</h1>
+         
+         {/* Delivery Address Section */}
+<div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+  <div className="flex items-start justify-between">
+    <div className="flex items-start space-x-3 flex-1">
+      <div className="flex-shrink-0 mt-1">
+        <Truck className="h-5 w-5 text-blue-600" />
+      </div>
+      <div className="flex-1">
+        <h3 className="text-sm font-semibold text-gray-900 mb-1">Delivery Address</h3>
+        {isEditingAddress ? (
+          <div className="space-y-3">
+            <textarea
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+              placeholder="Enter your delivery address..."
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none text-sm"
+              rows="3"
+            />
+            {addressError && (
+              <p className="text-xs text-red-600">{addressError}</p>
+            )}
+            <div className="flex space-x-2">
+              <button
+                onClick={handleUpdateAddress}
+                disabled={addressLoading}
+                className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+              >
+                {addressLoading ? 'Saving...' : 'Save'}
+              </button>
+              <button
+                onClick={() => {
+                  setIsEditingAddress(false);
+                  setAddressError(null);
+                }}
+                disabled={addressLoading}
+                className="px-4 py-2 bg-gray-200 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div>
+            <p className="text-sm text-gray-700">
+              {address || <span className="text-gray-400 italic">No delivery address set</span>}
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+    {!isEditingAddress && (
+      <button
+        onClick={() => setIsEditingAddress(true)}
+        className="ml-4 px-3 py-1.5 text-xs font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
+      >
+        {address ? 'Change' : 'Add'}
+      </button>
+    )}
+  </div>
+</div>
+   
+
+        {/* Error Message Display */}
+        {error && (
+          <div className="bg-gradient-to-r from-red-50 to-pink-50 border border-red-200 rounded-xl p-6 shadow-sm">
+            <div className="flex items-center space-x-3">
+              <div className="flex-shrink-0">
+                <AlertCircle className="h-6 w-6 text-red-600" />
+              </div>
+              <div>
+                <h3 className="text-base font-medium text-red-900">Error loading payments</h3>
+                <p className="mt-1 text-sm text-red-700">{error}</p>
+                <p className="mt-2 text-xs text-red-600">Showing empty state. Please refresh to try again.</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Runtime Error Message Display */}
+        {errorMessage && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <div className="flex">
+              <AlertCircle className="h-4 w-4 text-red-400" />
+              <div className="ml-3">
+                <p className="text-sm text-red-800">{errorMessage}</p>
+              </div>
+              <button
+                onClick={() => setErrorMessage("")}
+                className="ml-auto text-red-400 hover:text-red-600"
+              >
+                ×
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Payment Status Display */}
+        {paymentStatus && (
+          <div className={`border rounded-lg p-3 ${
+            paymentStatus === 'verified' 
+              ? 'bg-green-50 border-green-200' 
+              : paymentStatus === 'verifying'
+              ? 'bg-blue-50 border-blue-200'
+              : 'bg-yellow-50 border-yellow-200'
+          }`}>
+            <div className="flex items-center">
+              {paymentStatus === 'verified' && <CheckCircle className="h-4 w-4 text-green-400" />}
+              {paymentStatus === 'verifying' && <div className="animate-spin h-4 w-4 border-2 border-blue-400 border-t-transparent rounded-full" />}
+              {paymentStatus === 'cancelled' && <Clock className="h-4 w-4 text-yellow-400" />}
+              <div className="ml-3">
+                <p className={`text-sm ${
+                  paymentStatus === 'verified' 
+                    ? 'text-green-800' 
+                    : paymentStatus === 'verifying'
+                    ? 'text-blue-800'
+                    : 'text-yellow-800'
+                }`}>
+                  {paymentStatus === 'verified' && 'Payment completed successfully!'}
+                  {paymentStatus === 'verifying' && 'Verifying payment...'}
+                  {paymentStatus === 'cancelled' && 'Payment was cancelled'}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Summary Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="group bg-white rounded-xl shadow-sm border border-gray-100 p-4 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-lg font-bold text-black-500 uppercase tracking-wide">Total Amount</p>
+                <p className="text-xl font-bold text-blue-900 mt-1">
+                  {formatCurrency(safePaymentsData.summary.totalAmount)}
+                </p>
+                
+              </div>
+              <div className="h-12 w-12 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                <DollarSign className="h-6 w-6 text-blue-600" />
+              </div>
+            </div>
+          </div>
+
+          <div className="group bg-white rounded-xl shadow-sm border border-gray-100 p-4 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-lg font-bold text-black-500 uppercase tracking-wide">Amount Paid</p>
+                <p className="text-xl font-bold text-green-600 mt-1">
+                  {formatCurrency(safePaymentsData.summary.amountPaid)}
+                </p>
+               
+              </div>
+              <div className="h-12 w-12 bg-gradient-to-br from-green-100 to-emerald-100 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                <CheckCircle className="h-6 w-6 text-green-600" />
+              </div>
+            </div>
+          </div>
+
+          <div className="group bg-white rounded-xl shadow-sm border border-gray-100 p-4 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-lg font-bold text-black-500 uppercase tracking-wide">Amount Due</p>
+                <p className="text-xl font-bold text-red-600 mt-1">
+                  {formatCurrency(safePaymentsData.summary.amountDue)}
+                </p>
+               
+              </div>
+              <div className="h-12 w-12 bg-gradient-to-br from-red-100 to-pink-100 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                <Clock className="h-6 w-6 text-red-600" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Bills List */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+          
+          <div className="divide-y divide-gray-100">
+            {safePaymentsData.allBills.length === 0 ? (
+              <div className="px-6 py-12 text-center">
+                <div className="bg-gray-100 rounded-full h-16 w-16 mx-auto mb-3 flex items-center justify-center">
+                  <Receipt className="h-8 w-8 text-gray-400" />
+                </div>
+                <div className="text-gray-500 text-base font-medium">No bills found</div>
+                <div className="text-gray-400 text-sm mt-1">Your billing history will appear here</div>
+              </div>
+            ) : (
+              safePaymentsData.allBills.map((bill) => (
+                <div key={bill.prescriptionId} className="p-6 hover:bg-gray-50 transition-colors duration-200">
+                  {/* Single Row Layout */}
+                  <div className="flex items-center">
+                    {/* Left side - Prescription info and date (Fixed width) */}
+                    <div className="w-80 flex-shrink-0">
+                      <div className="flex items-center space-x-2">
+                        <h3 className="text-base font-bold text-gray-900">
+                          Prescription {bill.prescriptionId ? bill.prescriptionId.slice(-8) : 'Unknown'}
+                        </h3>
+                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                          bill.isPaid 
+                            ? 'bg-green-100 text-green-800 border border-green-200' 
+                            : 'bg-red-100 text-red-800 border border-red-200'
+                        }`}>
+                          {bill.isPaid ? 'Paid' : 'Unpaid'}
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">{formatDate(bill.createdAt)}</p>
+                    </div>
+                    
+                    {/* Center - Charges breakdown (Fixed spacing) */}
+                    <div className="flex items-center flex-1 gap-10">
+                      <div className="text-center w-24">
+                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Medicine</p>
+                        <p className="text-sm font-bold text-gray-900">{formatCurrency(bill.medicineCharges || 0)}</p>
+                      </div>
+                      
+                      <div className="text-center w-24">
+                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Shipping</p>
+                        <p className="text-sm font-bold text-gray-900">{formatCurrency(bill.shippingCharges || 0)}</p>
+                      </div>
+                      
+                      <div className="text-center w-24">
+                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Additional</p>
+                        <p className="text-sm font-bold text-gray-900">{formatCurrency(bill.additionalCharges || 0)}</p>
+                      </div>
+                      
+                      <div className="text-center w-24">
+                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Total</p>
+                        <p className="text-base font-bold text-gray-900">{formatCurrency(bill.totalCharges || 0)}</p>
+                      </div>
+                    </div>
+                    
+                    {/* Right side - Payment button (Fixed width for consistency) */}
+                    <div className="w-32 flex justify-end">
+                      {!bill.isPaid && (bill.totalCharges || 0) > 0 && (
+                        <button
+                          onClick={() => handlePayment(bill.prescriptionId)}
+                          disabled={payingBill === bill.prescriptionId || !isRazorpayLoaded}
+                          className={`px-6 py-2 rounded-lg text-sm font-medium transition-all duration-300 transform ${
+                            payingBill === bill.prescriptionId
+                              ? 'bg-gray-100 text-gray-400 cursor-not-allowed scale-95'
+                              : !isRazorpayLoaded
+                              ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                              : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl hover:scale-105 active:scale-95'
+                          }`}
+                        >
+                          {payingBill === bill.prescriptionId ? (
+                            <div className="flex items-center space-x-2">
+                              <div className="animate-spin h-4 w-4 border-2 border-gray-400 border-t-transparent rounded-full"></div>
+                              <span>Processing Payment...</span>
+                            </div>
+                          ) : !isRazorpayLoaded ? (
+                            <div className="flex items-center space-x-2">
+                              <div className="animate-spin h-4 w-4 border-2 border-gray-400 border-t-transparent rounded-full"></div>
+                              <span>Loading Payment...</span>
+                            </div>
+                          ) : (
+                            <span>Pay {formatCurrency(bill.totalCharges || 0)}</span>
+                          )}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+    </Layout>
+  );
+};
+
+export default Payments;
