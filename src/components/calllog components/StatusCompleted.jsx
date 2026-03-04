@@ -116,30 +116,47 @@ const StatusCompleteTable = () => {
     return matchesSearchTerm && matchesFilter;
   });
 
-  const makeCall = async (patient) => {
-    try {
-      const callResponse = await axios.post('https://f9ea-122-15-77-226.ngrok-free.app/make-call', {
-        to: patient.phone,
-      });
-      
-      if (callResponse.status === 200) {
-        const countResponse = await axios.post(`${API_URL}/api/log/increment-call-count/${patient._id}`);
-        if (countResponse.status === 200) {
-          setPatients(prevPatients => prevPatients.map(p =>
-            p._id === patient._id ? countResponse.data.patient : p
-          ));
-          setCurrentCall(patient);
-          window.alert('Call initiated and call count incremented successfully!');
-        } else {
-          console.error('Failed to increment call count:', countResponse.data);
+   const makeCall = async (patient) => {
+  try {
+    const token = localStorage.getItem("token"); // if using JWT
+
+    const response = await axios.post(
+      `${API_URL}/api/call/call-patient`,
+      {
+        patientId: patient._id
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${token}` // remove if not required
         }
-      } else {
-        console.error('Failed to initiate call:', callResponse.data);
       }
-    } catch (error) {
-      console.error('Error making call or incrementing call count:', error.response ? error.response.data : error.message);
+    );
+
+    if (response.status === 200) {
+      window.alert("Call initiated successfully!");
+
+      // OPTIONAL: Increment call count locally
+      setPatients(prevPatients =>
+        prevPatients.map(p =>
+          p._id === patient._id
+            ? {
+                ...p,
+                medicalDetails: {
+                  ...p.medicalDetails,
+                  callCount: (p.medicalDetails.callCount || 0) + 1
+                }
+              }
+            : p
+        )
+      );
+
     }
-  };
+
+  } catch (error) {
+    console.error("Error initiating call:", error.response?.data || error.message);
+    window.alert(error.response?.data?.message || "Call failed");
+  }
+};
 
   const endCall = () => {
     setShowCallInterface(false);

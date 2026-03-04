@@ -19,7 +19,7 @@
 //   const [filterDate, setFilterDate] = useState("");
 //   const [filterDisease, setFilterDisease] = useState("");
 //   const [filterStatus, setFilterStatus] = useState("");
-  
+
 
 
 //   useEffect(() => {
@@ -34,7 +34,7 @@
 //             }
 //           }
 //         );
-        
+
 //         // Handle the API response structure
 //         if (response.data.success && response.data.appointments) {
 //           setAppointments(response.data.appointments);
@@ -56,7 +56,7 @@
 //   const indexOfLastAppointment = currentPage * appointmentsPerPage;
 //   const indexOfFirstAppointment = indexOfLastAppointment - appointmentsPerPage;
 //   const currentAppointments = appointments.slice(indexOfFirstAppointment, indexOfLastAppointment);
- 
+
 //   const filteredAppointments = currentAppointments.filter((a) => {
 //   const matchesSearch =
 //     a.patient?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -123,13 +123,13 @@
 //       try {
 //         setLoading(true);
 //         const token = localStorage.getItem('token');
-        
+
 //         if (!token) {
 //           setError('No authentication token found');
 //           setLoading(false);
 //           return;
 //         }
-  
+
 //         const response = await fetch(`${API_URL}/api/analytics/upcoming-appointments`, {
 //           method: 'GET',
 //           headers: {
@@ -137,13 +137,13 @@
 //             'Content-Type': 'application/json'
 //           }
 //         });
-  
+
 //         if (!response.ok) {
 //           throw new Error('Failed to fetch appointments');
 //         }
-  
+
 //         const result = await response.json();
-        
+
 //         if (result.success) {
 //           setAppointments(result.data);
 //         } else {
@@ -157,18 +157,18 @@
 //     };
 //       fetchUpcomingAppointments();
 //     }, [API_URL]);
-  
+
 //     // const fetchAppointments = async () => {
 //     //   try {
 //     //     setLoading(true);
 //     //     const token = localStorage.getItem('token');
-        
+
 //     //     if (!token) {
 //     //       setError('No authentication token found');
 //     //       setLoading(false);
 //     //       return;
 //     //     }
-  
+
 //     //     const response = await fetch(`${API_URL}/api/analytics/upcoming-appointments`, {
 //     //       method: 'GET',
 //     //       headers: {
@@ -176,13 +176,13 @@
 //     //         'Content-Type': 'application/json'
 //     //       }
 //     //     });
-  
+
 //     //     if (!response.ok) {
 //     //       throw new Error('Failed to fetch appointments');
 //     //     }
-  
+
 //     //     const result = await response.json();
-        
+
 //     //     if (result.success) {
 //     //       setAppointments(result.data);
 //     //     } else {
@@ -194,13 +194,13 @@
 //     //     setLoading(false);
 //     //   }
 //     // };
-  
+
 //     // const formatDate = (dateString) => {
 //     //   const date = new Date(dateString);
 //     //   const options = { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' };
 //     //   return date.toLocaleDateString('en-US', options);
 //     // };
-  
+
 //     const formatTime = (timeSlot) => {
 //       const [hours, minutes] = timeSlot.split(':');
 //       const hour = parseInt(hours);
@@ -208,12 +208,12 @@
 //       const displayHour = hour % 12 || 12;
 //       return `${displayHour}:${minutes} ${ampm}`;
 //     };
-  
+
 //     const handleJoinMeet = (meetLink) => {
 //       window.open(meetLink, '_blank');
 //     };
-  
- 
+
+
 
 
 //   if (loading) {
@@ -271,7 +271,7 @@
 
 //           {/* 🔹 Tab Content */}
 //           {activeTab === "today" && <>
-          
+
 //         <div className="mb-8">
 //       <h1 className="text-3xl font-bold text-gray-900">
 //         Appointments
@@ -291,7 +291,7 @@
 
 //           {/* 🔍 FILTER BAR */}
 // <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
-  
+
 //   {/* Search */}
 //   <div className="relative w-full lg:w-64">
 //     <input
@@ -306,7 +306,7 @@
 
 //   {/* Filters */}
 //   <div className="flex gap-3 flex-wrap">
-    
+
 //     {/* Date */}
 //     <input
 //       type="date"
@@ -433,7 +433,7 @@
 //                     </div>
 //                     <StatusBadge status={appointment.status} />
 //                   </div>
-                  
+
 //                   <div className="grid grid-cols-2 gap-3 text-sm">
 //                     <div>
 //                       <span className="font-medium text-gray-600">Date:</span>
@@ -482,7 +482,7 @@
 //       </select>
 //       <span className="text-sm text-gray-600 ml-2">per page</span>
 //     </div>
-    
+
 //     {/* Previous/Next pagination */}
 //     <div className="flex items-center space-x-2">
 //       <button
@@ -492,14 +492,14 @@
 //       >
 //         Previous
 //       </button>
-      
+
 //       <button
 //         className="px-4 py-2 border border-gray-300 rounded-md bg-blue-50 text-sm text-blue-600"
 //         disabled
 //       >
 //         {currentPage}
 //       </button>
-      
+
 //       <button
 //         className="px-4 py-2 border border-gray-300 rounded-md text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
 //         onClick={() => paginate(currentPage + 1)}
@@ -538,11 +538,11 @@
 //         </p>
 //       </div>
 //     ) : (
-      
+
 //       <div className="">
 //         {/* 🔍 FILTER BAR */}
 // <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
-  
+
 //   {/* Search */}
 //   <div className="relative w-full lg:w-64">
 //     <input
@@ -557,7 +557,7 @@
 
 //   {/* Filters */}
 //   <div className="flex gap-3 flex-wrap">
-    
+
 //     {/* Date */}
 //     <input
 //       type="date"
@@ -677,7 +677,7 @@
 
 //         </div>
 //       </div>
-        
+
 //       </div>
 //     </DoctorLayout>
 //   );
@@ -793,6 +793,28 @@ const AppointmentList = () => {
     if (meetLink) window.open(meetLink.trim(), '_blank');
   };
 
+  const handlePaymentStatusChange = async (appointmentId, value) => {
+    try {
+      const token = localStorage.getItem("token");
+
+      await axios.patch(
+        `${API_URL}/api/doctor/update-payment-settled/${appointmentId}`,
+        { paymentSettled: value },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      // update UI instantly
+      setTodayAppointments((prev) =>
+        prev.map((appt) =>
+          appt._id === appointmentId
+            ? { ...appt, paymentSettled: value }
+            : appt
+        )
+      );
+    } catch (error) {
+      console.error("Error updating payment status:", error);
+    }
+  };
   const StatusBadge = ({ status }) => {
     const getStatusColor = (status) => {
       switch (status?.toLowerCase()) {
@@ -811,57 +833,57 @@ const AppointmentList = () => {
   };
 
   // 🔍 Choose data based on active tab
-const currentTabData = activeTab === "today" ? todayAppointments : upcomingAppointments;
+  const currentTabData = activeTab === "today" ? todayAppointments : upcomingAppointments;
 
   // 🔍 Apply filters
-   const filteredAppointments = currentTabData.filter((a) => {
-  // 🔍 SEARCH
-  const matchesSearch = searchTerm
-  ? (
-      (a.patient?.name &&
-        a.patient.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (a.patient?.phone && a.patient.phone.includes(searchTerm)) ||
-      (a.patientName &&
-        a.patientName.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (a.phone && a.phone.includes(searchTerm))
-    )
-  : true;
+  const filteredAppointments = currentTabData.filter((a) => {
+    // 🔍 SEARCH
+    const matchesSearch = searchTerm
+      ? (
+        (a.patient?.name &&
+          a.patient.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (a.patient?.phone && a.patient.phone.includes(searchTerm)) ||
+        (a.patientName &&
+          a.patientName.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (a.phone && a.phone.includes(searchTerm))
+      )
+      : true;
 
 
-  // 📅 DATE
-  const matchesDate = filterDate
-    ? new Date(a.appointmentDate).toISOString().split("T")[0] === filterDate
-    : true;
+    // 📅 DATE
+    const matchesDate = filterDate
+      ? new Date(a.appointmentDate).toISOString().split("T")[0] === filterDate
+      : true;
 
-  // 🦠 DISEASE
-  const matchesDisease = filterDisease
-    ? a.diseaseType?.name === filterDisease ||
+    // 🦠 DISEASE
+    const matchesDisease = filterDisease
+      ? a.diseaseType?.name === filterDisease ||
       a.diseaseName === filterDisease
-    : true;
+      : true;
 
-  // 📌 STATUS
-  const matchesStatus = filterStatus
-    ? a.status?.toLowerCase() === filterStatus.toLowerCase()
-    : true;
+    // 📌 STATUS
+    const matchesStatus = filterStatus
+      ? a.status?.toLowerCase() === filterStatus.toLowerCase()
+      : true;
 
-  return (
-    matchesSearch &&
-    matchesDate &&
-    matchesDisease &&
-    matchesStatus
-  );
-});
+    return (
+      matchesSearch &&
+      matchesDate &&
+      matchesDisease &&
+      matchesStatus
+    );
+  });
 
   // 📄 Pagination logic
   const indexOfLast = currentPage * appointmentsPerPage;
-const indexOfFirst = indexOfLast - appointmentsPerPage;
+  const indexOfFirst = indexOfLast - appointmentsPerPage;
 
-const currentAppointments =
-  filteredAppointments.slice(indexOfFirst, indexOfLast);
+  const currentAppointments =
+    filteredAppointments.slice(indexOfFirst, indexOfLast);
 
-const totalPages = Math.ceil(
-  filteredAppointments.length / appointmentsPerPage
-);
+  const totalPages = Math.ceil(
+    filteredAppointments.length / appointmentsPerPage
+  );
 
   const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
@@ -895,21 +917,19 @@ const totalPages = Math.ceil(
           <div className="flex gap-6 border-b mb-6">
             <button
               onClick={() => setActiveTab("today")}
-              className={`pb-2 font-medium text-base ${
-                activeTab === "today"
-                  ? "text-blue-600 border-b-2 border-blue-600"
-                  : "text-gray-500"
-              }`}
+              className={`pb-2 font-medium text-base ${activeTab === "today"
+                ? "text-blue-600 border-b-2 border-blue-600"
+                : "text-gray-500"
+                }`}
             >
               Today’s Appointments
             </button>
             <button
               onClick={() => setActiveTab("upcoming")}
-              className={`pb-2 font-medium text-base ${
-                activeTab === "upcoming"
-                  ? "text-blue-600 border-b-2 border-blue-600"
-                  : "text-gray-500"
-              }`}
+              className={`pb-2 font-medium text-base ${activeTab === "upcoming"
+                ? "text-blue-600 border-b-2 border-blue-600"
+                : "text-gray-500"
+                }`}
             >
               Upcoming Appointments
             </button>
@@ -983,6 +1003,8 @@ const totalPages = Math.ceil(
                         <th className="bg-white text-center p-4 font-bold text-gray-700 text-sm">Disease Type</th>
                         <th className="bg-gray-100 text-center p-4 font-bold text-gray-700 text-sm">Payment</th>
                         <th className="bg-white text-center p-4 font-bold text-gray-700 text-sm">Status</th>
+                        <th className="bg-gray-100 text-center p-4 font-bold text-gray-700 text-sm">Payment-Status</th>
+
                       </tr>
                     </thead>
                     <tbody>
@@ -1014,6 +1036,27 @@ const totalPages = Math.ceil(
                           </td>
                           <td className="bg-white p-4 text-center">
                             <StatusBadge status={appointment.status} />
+                          </td>
+                          <td className="bg-gray-100 p-4 text-center">
+                            <div className="flex justify-center">
+                              <select
+                                value={appointment.paymentSettled ? "paid" : "pending"}
+                                onChange={(e) =>
+                                  handlePaymentStatusChange(
+                                    appointment._id,
+                                    e.target.value === "paid"
+                                  )
+                                }
+                                className={`rounded px-3 py-2 text-sm font-medium text-center border focus:outline-none
+        ${appointment.paymentSettled
+                                    ? "bg-green-100 text-green-700 border-green-300"
+                                    : "bg-red-100 text-red-700 border-red-300"
+                                  }`}
+                              >
+                                <option value="paid">Paid</option>
+                                <option value="pending">Yet to Pay</option>
+                              </select>
+                            </div>
                           </td>
                         </tr>
                       ))}

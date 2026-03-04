@@ -170,7 +170,7 @@ const TabSwitcher = () => {
   useEffect(() => {
   const fetchDashboardStats = async () => {
     try {
-      const res = await fetch(`${API_URL}/api/patient/dashboard-statistics`);
+      const res = await fetch(`${API_URL}/api/doctor/dashboard-statistics`);
       const data = await res.json();
 
       if (data.success) {
@@ -214,7 +214,7 @@ const TabSwitcher = () => {
   const fetchAppointmentCounts = async (classification = 'acute', newExisting = 'Existing') => {
   try {
     setCountsLoading(true);
-    const response = await axios.patch(`${API_URL}/api/patient/sort-classification`, {
+    const response = await axios.patch(`${API_URL}/api/doctor/sort-classification`, {
       classification: classification,
       newExisting: newExisting
     });
@@ -222,6 +222,7 @@ const TabSwitcher = () => {
     if (response.data.success) {
       setAppointmentCounts(response.data.appointmentCounts);
     }
+    console.log(response.data.appointmentCounts,"Patient")
   } catch (error) {
     console.error('Error fetching appointment counts:', error);
   } finally {
@@ -321,6 +322,7 @@ const handleTabChange = (tab) => {
     const tabFilter = activeTab === 'acute' 
     ? patient.medicalDetails.classification === 'acute'
     : patient.medicalDetails.classification === 'chronic';
+    
     if (selectedFollowType === "View All") {
         return patient.newExisting === "New";
     }
@@ -361,7 +363,7 @@ const handleTabChange = (tab) => {
         patient.phone.includes(searchTerm))
     );
   });
-
+console.log(filteredPatients,"fill");
   const navigate = useNavigate();
   const handleJoinRoom = (patient) => {
     const appointmentID = patient.medicalDetails._id;
@@ -1447,6 +1449,30 @@ const handleTabChange = (tab) => {
     </button>
   );
 
+    const makeVoiceCall = async (patient) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await axios.post(
+      `${API_URL}/api/call/call-patient`,
+      {
+        patientId: patient._id,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    if (response.status === 200) {
+      alert("📞 Call initiated successfully!");
+    }
+  } catch (error) {
+    console.error("Voice Call Error:", error.response?.data || error.message);
+    alert(error.response?.data?.message || "Call failed");
+  }
+};
   const handleAction = async (action, item) => {
     const isMshipTable = selectedFollowType === "Payment";
 
@@ -1469,8 +1495,8 @@ const handleTabChange = (tab) => {
         alert(`Starting video call with ${item.name}`);
         handleJoinRoom(item);
         break;
-      case "VoiceCall":
-        alert(`Calling ${item.phone}`);
+       case "VoiceCall":
+      makeVoiceCall(item);
         break;
       case "Recordings":
         alert(`Viewing recordings for ${item.name}`);

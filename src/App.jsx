@@ -230,14 +230,7 @@ function App() {
           }
         />
 
-        <Route
-          path="/appointments/newappointment"
-          element={
-            <ProtectedRoute allowedRoles={["Patient"]}>
-              <NewAppointment />
-            </ProtectedRoute>
-          }
-        />
+     
 
         <Route
           path="/appointments/upcoming"
@@ -247,7 +240,14 @@ function App() {
             </ProtectedRoute>
           }
         />
-
+<Route
+  path="/doctor/:patientId/book-appointment"
+  element={
+    <ProtectedRoute allowedRoles={["Doctor"]}>
+      <NewAppointment />
+    </ProtectedRoute>
+  }
+/>
         <Route
           path="/appointments/recent"
           element={
@@ -885,6 +885,7 @@ function App() {
             </ProtectedRoute>
           }
         />
+      
         <Route
           path="/add-doctor"
           element={

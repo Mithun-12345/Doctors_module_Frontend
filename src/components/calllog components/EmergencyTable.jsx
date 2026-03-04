@@ -28,6 +28,8 @@ const EmergencyTable = () => {
   const [currentDoctorId, setCurrentDoctorId] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [followTypes, setFollowTypes] = useState([]);
+  const [TotalAppointments, setTotalAppointments] = useState([]);
+
   const [selectedFollowType, setSelectedFollowType] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -170,7 +172,7 @@ const TabSwitcher = () => {
   useEffect(() => {
   const fetchDashboardStats = async () => {
     try {
-      const res = await fetch(`${API_URL}/api/patient/dashboard-statistics`);
+      const res = await fetch(`${API_URL}/api/doctor/dashboard-statistics`);
       const data = await res.json();
 
       if (data.success) {
@@ -198,10 +200,10 @@ const TabSwitcher = () => {
     }
   };
 
-  const fetchAppointmentCounts = async (classification = 'acute', newExisting = 'Existing') => {
+  const fetchAppointmentCounts = async (classification = 'acute', newExisting = 'Emergency') => {
   try {
     setCountsLoading(true);
-    const response = await axios.patch(`${API_URL}/api/patient/sort-classification`, {
+    const response = await axios.patch(`${API_URL}/api/doctor/sort-classification`, {
       classification: classification,
       newExisting: newExisting
     });
@@ -209,6 +211,7 @@ const TabSwitcher = () => {
     if (response.data.success) {
       setAppointmentCounts(response.data.appointmentCounts);
     }
+    console.log(response.data.appointmentCounts,"per")
   } catch (error) {
     console.error('Error fetching appointment counts:', error);
   } finally {
@@ -245,8 +248,12 @@ const TabSwitcher = () => {
         }
       );
 
-      let followTypesArray = response.data.follow.split(", ");
+let followTypesArray = response.data.follow.split(", ");
 
+// 🔥 ADD THIS
+if (!followTypesArray.includes("Emergency")) {
+  followTypesArray.unshift("Emergency");
+}
       // Handle Follow up-C expansion
       if (followTypesArray.includes("Follow up-C")) {
         const index = followTypesArray.indexOf("Follow up-C");
@@ -284,6 +291,26 @@ const TabSwitcher = () => {
     }
   };
 
+
+    const fetchPatients = async () => {
+    try {
+      let url = `${API_URL}/api/doctor/getAllAppointmentsWithPatientData`;
+      if (selectedFollowType === "View All") {
+        url = `${API_URL}/api/log/list?appointmentFixed=Yes`;
+      }
+      const response = await axios.get(url);
+      console.log(response.data);
+      setPatients(response.data);
+    } catch (error) {
+      console.error(
+        "Error fetching patients:",
+        error.response ? error.response.data : error.message
+      );
+      setError(error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
 //  const fetchPatients = async () => {
 //   try {
@@ -366,28 +393,29 @@ const TabSwitcher = () => {
 //   }
 // };
 
-  const fetchPatients = async () => {
-  try {
-    let url = `${API_URL}/api/doctor/getAllAppointmentsWithPatientData`;
-    if (selectedFollowType === "View All") {
-      url = `${API_URL}/api/log/list?appointmentFixed=Yes`;
-    }
-    const response = await axios.get(url);
-    console.log("Raw data:", response.data);
+//   const fetchPatients = async () => {
+//   try {
+//     let url = `${API_URL}/api/doctor/getAllAppointmentsWithPatientData`;
+//     if (selectedFollowType === "View All") {
+//       url = `${API_URL}/api/log/list?appointmentFixed=Yes`;
+//     }
+//     const response = await axios.get(url);
+//     console.log("Raw data:", response.data);
 
-    // ✅ FILTER: Only keep emergency appointments
-    const emergencyOnly = Array.isArray(response.data)
-      ? response.data.filter(appointment => appointment.isEmergency === true)
-      : []; // Handle case where response is a single object
+   
+    
+//     const patientList = Array.isArray(response.data)
+//   ? response.data
+//   : [];
 
-    setPatients(emergencyOnly);
-  } catch (error) {
-    console.error("Error fetching patients:", error);
-    setError(error.message);
-  } finally {
-    setIsLoading(false);
-  }
-};
+// setPatients(patientList);
+//   } catch (error) {
+//     console.error("Error fetching patients:", error);
+//     setError(error.message);
+//   } finally {
+//     setIsLoading(false);
+//   }
+// };
      
 
 //      const fetchPatients = async () => {
@@ -427,55 +455,37 @@ const TabSwitcher = () => {
     fetchPatients();
   }, [selectedFollowType]);
 
-  useEffect(() => {
-  fetchAppointmentCounts(activeTab, 'Existing');
+   useEffect(() => {
+  fetchAppointmentCounts(activeTab, 'Emergency');
 }, [activeTab]);
+
 
 const handleTabChange = (tab) => {
   setActiveTab(tab);
   fetchPatients();
 };
 
+
   const filteredPatients = patients.filter((patient) => {
-    const tabFilter = activeTab === 'acute' 
-    ? patient.medicalDetails.classification === 'acute'
-    : patient.medicalDetails.classification === 'chronic';
+  const isEmergency = patient.isEmergency === true;
+const tabFilter =
+  activeTab === "acute"
+    ? patient.medicalDetails?.classification?.toLowerCase() === "acute"
+    : patient.medicalDetails?.classification?.toLowerCase() === "chronic";
+  const followFilter =
+    selectedFollowType === "Emergency"
+      ? true
+      : patient.medicalDetails?.follow === selectedFollowType;
 
-    const isMatchingFollowType =
-      // (selectedFollowType === 'Follow up-C-New' && patient.follow === 'Follow up-C' && patient.newExisting === 'New') ||
-      // (selectedFollowType === 'Follow up-C-Existing' && patient.follow === 'Follow up-C' && patient.newExisting === 'Existing') ||
-      // (selectedFollowType !== 'Follow up-C-New' && selectedFollowType !== 'Follow up-C-Existing' && patient.follow === selectedFollowType);
+  const searchFilter =
+    searchTerm === "" ||
+    patient.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    patient.phone?.includes(searchTerm);
 
-      (selectedFollowType === "Follow up-Chronic-New" &&
-        patient.medicalDetails.diseaseType.name === "Chronic" &&
-        patient.medicalDetails.follow === "Follow up-C" &&
-        patient.newExisting === "New") ||
-      (selectedFollowType === "Follow up-Chronic-Existing" &&
-        patient.medicalDetails.diseaseType.name === "Chronic" &&
-        patient.medicalDetails.follow === "Follow up-C" &&
-        patient.newExisting === "Existing") ||
-      (selectedFollowType === "Follow up-Acute-New" &&
-        patient.medicalDetails.diseaseType.name === "Acute" &&
-        patient.medicalDetails.follow === "Follow up-C" &&
-        patient.newExisting === "New") ||
-      (selectedFollowType === "Follow up-Acute-Existing" &&
-        patient.medicalDetails.diseaseType.name === "Acute" &&
-        patient.medicalDetails.follow === "Follow up-C" &&
-        patient.newExisting === "Existing") ||
-      (selectedFollowType !== "Follow up-Chronic-New" &&
-        selectedFollowType !== "Follow up-Chronic-Existing" &&
-        selectedFollowType !== "Follow up-Acute-New" &&
-        selectedFollowType !== "Follow up-Acute-Existing" &&
-        patient.medicalDetails.follow === selectedFollowType);
-    // console.log("Checking patient: ",patient);
-    return (
-      isMatchingFollowType &&
-      tabFilter &&
-      (searchTerm === "" ||
-        patient.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        patient.phone.includes(searchTerm))
-    );
-  });
+    
+  return isEmergency && tabFilter && followFilter && searchFilter;
+});
+
 
   const navigate = useNavigate();
   const handleJoinRoom = (patient) => {
@@ -1562,6 +1572,45 @@ const handleTabChange = (tab) => {
     </button>
   );
 
+  const makeCall = async (patient) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await axios.post(
+      `${API_URL}/api/call/call-patient`,
+      {
+        patientId: patient._id
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      }
+    );
+
+    if (response.status === 200) {
+      window.alert("Call initiated successfully!");
+
+      setPatients(prevPatients =>
+        prevPatients.map(p =>
+          p._id === patient._id
+            ? {
+                ...p,
+                medicalDetails: {
+                  ...p.medicalDetails,
+                  callCount: (p.medicalDetails.callCount || 0) + 1
+                }
+              }
+            : p
+        )
+      );
+    }
+
+  } catch (error) {
+    console.error("Error initiating call:", error.response?.data || error.message);
+    window.alert(error.response?.data?.message || "Call failed");
+  }
+};
   const handleAction = async (action, item) => {
     const isMshipTable = selectedFollowType === "Payment";
 
@@ -1584,26 +1633,9 @@ const handleTabChange = (tab) => {
         alert(`Starting video call with ${item.name}`);
         handleJoinRoom(item);
         break;
-        case "VoiceCall":
-    alert(`Calling ${item.phone}`);
-    const token = localStorage.getItem("token");
-    fetch(`${API_URL}/api/doctor/${item._id}/increment-call`, {
-        method: "PATCH",
-        headers: {
-            'Authorization': `Bearer ${token}`
-        }
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error("Failed to increment call");
-        }
-        // Optionally handle success
-    })
-    .catch(error => {
-        console.error(error);
-        // Optionally handle error
-    });
-    break;
+       case "VoiceCall":
+      await makeCall(item);
+      break;
 
       case "Recordings":
         alert(`Viewing recordings for ${item.name}`);
@@ -1719,7 +1751,7 @@ const handleTabChange = (tab) => {
       <div className={`w-2 h-2 rounded-full ${
         activeTab === 'acute' ? 'bg-blue-600' : 'bg-gray-400'
       }`}></div>
-      Acute ({statistics?.newAppointments?.acute ?? 0})
+      Acute ({statistics?.emergencyAppointments?.acute ?? 0})
     </button>
     <button 
       onClick={() => handleTabChange('chronic')}
@@ -1732,7 +1764,7 @@ const handleTabChange = (tab) => {
       <div className={`w-2 h-2 rounded-full ${
         activeTab === 'chronic' ? 'bg-blue-600' : 'bg-gray-400'
       }`}></div>
-      Chronic ({statistics?.newAppointments?.chronic ?? 0})
+      Chronic ({statistics?.emergencyAppointments?.chronic ?? 0})
     </button>
   </div>
 

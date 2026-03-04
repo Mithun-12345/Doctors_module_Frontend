@@ -9,6 +9,8 @@ import { MenuBook, Note } from "@mui/icons-material";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import MedicineCalendar from "../../components/doctor components/PresTimeSheet";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
 
 const API_URL = config.API_URL;
 
@@ -18,21 +20,19 @@ const TabNavigation = ({ activeTab, onTabChange }) => {
     <div className="flex gap-6 mb-6 pl-[20px] pr-[20px]">
       <button
         onClick={() => onTabChange("new-patient")}
-        className={`flex-1 px-6 py-3 rounded-lg gap-16 text-base font-medium leading-none transition-colors ${
-          activeTab === "new-patient"
-            ? "bg-blue-500 text-white"
-            : "bg-white text-gray-700 border border-gray-300"
-        }`}
+        className={`flex-1 px-6 py-3 rounded-lg gap-16 text-base font-medium leading-none transition-colors ${activeTab === "new-patient"
+          ? "bg-blue-500 text-white"
+          : "bg-white text-gray-700 border border-gray-300"
+          }`}
       >
         New Patient
       </button>
       <button
         onClick={() => onTabChange("follow-up")}
-        className={`flex-1 px-6 py-3 rounded-lg text-base font-medium leading-none transition-colors ${
-          activeTab === "follow-up"
-            ? "bg-blue-500 text-white"
-            : "bg-white text-gray-700 border border-gray-300"
-        }`}
+        className={`flex-1 px-6 py-3 rounded-lg text-base font-medium leading-none transition-colors ${activeTab === "follow-up"
+          ? "bg-blue-500 text-white"
+          : "bg-white text-gray-700 border border-gray-300"
+          }`}
       >
         Patient Follow-Up
       </button>
@@ -41,6 +41,8 @@ const TabNavigation = ({ activeTab, onTabChange }) => {
 };
 
 const FeedbackFollowUp = () => {
+  const navigate = useNavigate()
+
   // const dummyTableData = [
   //   {
   //     _id: "test1",
@@ -55,6 +57,7 @@ const FeedbackFollowUp = () => {
   // ];
   const [data, setData] = useState([]);
   const [newPatientData, setNewPatientData] = useState([]);
+  const [patients, setPatients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -282,25 +285,7 @@ const FeedbackFollowUp = () => {
     return () => clearInterval(interval);
   }, []);
 
-  const fetchPatientDetails = async (patientId) => {
-    try {
-      setLoadingDetails(true);
-      const response = await fetch(`${API_URL}/api/doctor/${patientId}/logs`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      });
 
-      if (!response.ok) throw new Error("Failed to fetch patient details");
-
-      const result = await response.json();
-      setPatientDetails(result);
-      setLoadingDetails(false);
-    } catch (err) {
-      console.error("Error fetching patient details:", err);
-      setLoadingDetails(false);
-    }
-  };
 
   const handleStatusSelect = (patientId, newStatus) => {
     if (newStatus === "Rescheduled") {
@@ -364,6 +349,47 @@ const FeedbackFollowUp = () => {
     fetchPatientDetails(patientId);
   };
 
+  const makeCall = async (patient) => {
+    try {
+      const token = localStorage.getItem("token"); // if using JWT
+
+      const response = await axios.post(
+        `${API_URL}/api/call/call-patient`,
+        {
+          patientId: patient.patientId 
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}` // remove if not required
+          }
+        }
+      );
+
+      if (response.status === 200) {
+        window.alert("Call initiated successfully!");
+
+        // OPTIONAL: Increment call count locally
+        setPatients(prevPatients =>
+          prevPatients.map(p =>
+            p._id === patient._id
+              ? {
+                ...p,
+                medicalDetails: {
+                  ...p.medicalDetails,
+                  callCount: (p.medicalDetails.callCount || 0) + 1
+                }
+              }
+              : p
+          )
+        );
+
+      }
+
+    } catch (error) {
+      console.error("Error initiating call:", error.response?.data || error.message);
+      window.alert(error.response?.data?.message || "Call failed");
+    }
+  };
   const handleRescheduleSave = () => {
     if (!rescheduleDateTime || !reschedulePatientId) return;
 
@@ -372,10 +398,10 @@ const FeedbackFollowUp = () => {
       prev.map((item) =>
         item._id === reschedulePatientId
           ? {
-              ...item,
-              status: "Rescheduled",
-              rescheduledTime: rescheduleDateTime,
-            }
+            ...item,
+            status: "Rescheduled",
+            rescheduledTime: rescheduleDateTime,
+          }
           : item
       )
     );
@@ -454,17 +480,17 @@ const FeedbackFollowUp = () => {
   // });
 
   const formatDate = (dateString) => {
-  if (!dateString) return "--";
+    if (!dateString) return "--";
 
-  const date = new Date(dateString);
+    const date = new Date(dateString);
 
-  const day = date.getDate();
-  const month = date.toLocaleString("en-GB", { month: "short" });
-  const hour = date.getHours().toString().padStart(2, "0");
-  const minute = date.getMinutes().toString().padStart(2, "0");
+    const day = date.getDate();
+    const month = date.toLocaleString("en-GB", { month: "short" });
+    const hour = date.getHours().toString().padStart(2, "0");
+    const minute = date.getMinutes().toString().padStart(2, "0");
 
-  return `${day} ${month}, ${hour}:${minute}`;
-};
+    return `${day} ${month}, ${hour}:${minute}`;
+  };
 
   const formatAppointmentDate = (dateString, timeSlot) => {
     if (!dateString) return "--";
@@ -472,12 +498,12 @@ const FeedbackFollowUp = () => {
     const dateStr = date.toLocaleDateString("en-GB", {
       day: "numeric",
       month: "short",
-      
+
     });
     return timeSlot ? `${dateStr}, ${timeSlot}` : dateStr;
   };
 
-  
+
 
   // Filter data based on search term
   const filteredData = data.filter(
@@ -488,21 +514,21 @@ const FeedbackFollowUp = () => {
 
   // Filter new patient data based on search term
   const filteredNewPatientData = newPatientData.filter((item) => {
-  // 🔍 search filter
-  const matchesSearch =
-    item.patientName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.phoneNumber?.toLowerCase().includes(searchTerm.toLowerCase());
+    // 🔍 search filter
+    const matchesSearch =
+      item.patientName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.phoneNumber?.toLowerCase().includes(searchTerm.toLowerCase());
 
-  // 🎯 status filter
-  let matchesStatus = true;
-  if (activeFilter === "All") {
-    matchesStatus = item.status !== "Lost" && item.status !== "Completed";
-  } else {
-    matchesStatus = item.status === activeFilter;
-  }
+    // 🎯 status filter
+    let matchesStatus = true;
+    if (activeFilter === "All") {
+      matchesStatus = item.status !== "Lost" && item.status !== "Completed";
+    } else {
+      matchesStatus = item.status === activeFilter;
+    }
 
-  return matchesSearch && matchesStatus;
-});
+    return matchesSearch && matchesStatus;
+  });
 
   // Pagination logic for follow-up
   const indexOfLastEntry = currentPage * entriesPerPage;
@@ -933,9 +959,9 @@ const FeedbackFollowUp = () => {
                       placeholder="Search"
                       value={searchTerm}
                       onChange={(e) => {
-  setSearchTerm(e.target.value);
-  setCurrentPage(1);
-}}
+                        setSearchTerm(e.target.value);
+                        setCurrentPage(1);
+                      }}
 
                       className="w-full h-9 pl-9 pr-3 text-sm border border-gray-300 text-gray-800 rounded-md
                  focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -944,12 +970,12 @@ const FeedbackFollowUp = () => {
 
                   {/* Sort & Status */}
                   <button
-        type="button"
-        onClick={() => setIsCalendarOpen(true)}
-        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-      >
-        Open Calendar
-      </button>
+                    type="button"
+                    onClick={() => setIsCalendarOpen(true)}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                  >
+                    Open Calendar
+                  </button>
                   <div className="absolute right-[70px] flex items-center gap-3 w-30">
                     <div className="relative">
                       <select className="h-9 pl-8 pr-6 w-[110px] text-sm border border-gray-300 rounded-md">
@@ -1027,6 +1053,9 @@ const FeedbackFollowUp = () => {
                       <th className="py-3 px-6 min-w-[180px] text-center text-base font-semibold text-gray-700 bg-gray-100 whitespace-nowrap">
                         Call
                       </th>
+                      <th className="py-3 px-6 min-w-[180px] text-center text-base font-semibold text-gray-700 whitespace-nowrap">
+                        Appointment
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1038,8 +1067,8 @@ const FeedbackFollowUp = () => {
                           item.status === "Rescheduled" &&
                           item.rescheduledTime &&
                           new Date(item.rescheduledTime).getTime() -
-                            15 * 60 * 1000 >
-                            Date.now();
+                          15 * 60 * 1000 >
+                          Date.now();
                         const isPostCallActive =
                           item.isTimerStopped && item.status !== "Rescheduled";
                         return (
@@ -1051,11 +1080,10 @@ const FeedbackFollowUp = () => {
                             <td className="bg-white p-4 text-gray-600">
                               <div className="flex items-center gap-4">
                                 <div
-                                  className={`w-5 h-5 border-2 rounded-sm flex items-center justify-center ${
-                                    item.appDownload === 1
-                                      ? "bg-green-500 border-green-500"
-                                      : "border-gray-300"
-                                  }`}
+                                  className={`w-5 h-5 border-2 rounded-sm flex items-center justify-center ${item.appDownload === 1
+                                    ? "bg-green-500 border-green-500"
+                                    : "border-gray-300"
+                                    }`}
                                 >
                                   {item.appDownload === 1 && (
                                     <Check className="w-3 h-3 text-white" />
@@ -1090,33 +1118,32 @@ const FeedbackFollowUp = () => {
                                   Rescheduled{" "}
                                 </span>
                               ) : // ) :item.isTimerStopped ? (
-                              //   <span className="stopped-badge">Stopped</span>
-                              item.status === "Completed" ? (
-                                <span className="flex items-center justify-center w-[128px] h-[28px] px-3 py-1 rounded-full border-2 border-green-500 bg-green-100 text-green-600 text-xs font-bold">
-                                  Completed
-                                </span>
-                              ) : item.status === "Lost" ? (
-                                <span
-                                  className="px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-400 border-2 border-gray-300"
-                                >
-                                  --
-                                </span>
-                              ) : (
-                                // ✅ NORMAL TIMER (Pending / Overdue)
-                                <span
-                                  className={`px-2 py-1 rounded-full text-xs ${
-                                    calculateTimeLeft(slaTime) === "Overdue"
+                                //   <span className="stopped-badge">Stopped</span>
+                                item.status === "Completed" ? (
+                                  <span className="flex items-center justify-center w-[128px] h-[28px] px-3 py-1 rounded-full border-2 border-green-500 bg-green-100 text-green-600 text-xs font-bold">
+                                    Completed
+                                  </span>
+                                ) : item.status === "Lost" ? (
+                                  <span
+                                    className="px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-400 border-2 border-gray-300"
+                                  >
+                                    --
+                                  </span>
+                                ) : (
+                                  // ✅ NORMAL TIMER (Pending / Overdue)
+                                  <span
+                                    className={`px-2 py-1 rounded-full text-xs ${calculateTimeLeft(slaTime) === "Overdue"
                                       ? "bg-green-100 text-green-600 border-2 border-green-400"
                                       : "bg-red-100 text-red-600 border-2 border-red-400"
-                                  }`}
-                                >
-                                  {calculateTimeLeft(
-                                    item,
-                                    slaTime,
-                                    finalOverdueTime
-                                  )}
-                                </span>
-                              )}
+                                      }`}
+                                  >
+                                    {calculateTimeLeft(
+                                      item,
+                                      slaTime,
+                                      finalOverdueTime
+                                    )}
+                                  </span>
+                                )}
                             </td>
 
                             <td className="bg-white p-4 text-gray-600 text-center text-sm font-normal leading-[26.76px] tracking-normal align-middle decoration-solid decoration-0 underline-offset-0">
@@ -1173,21 +1200,20 @@ const FeedbackFollowUp = () => {
                             </td>
                             <td className="bg-gray-100 p-4 text-center">
                               <button
-                                onClick={() => handleCallClick(item._id)}
-                                disabled={
-                                  Number(item.callsMade) >= 3 ||
-                                  isRescheduleActive ||
-                                  isPostCallActive
-                                }
-                                className={`px-4 py-1.5 text-xs font-medium rounded-md ${
-                                  Number(item.callsMade) >= 3 ||
-                                  isRescheduleActive ||
-                                  isPostCallActive
-                                    ? "bg-gray-300 cursor-not-allowed"
-                                    : "bg-green-500 text-white hover:bg-green-600"
-                                }`}
+                                onClick={() => makeCall(item)} // call the function
+                                className="px-4 py-1.5 text-xs font-medium rounded-md bg-green-500 text-white hover:bg-green-600"
                               >
                                 Call
+                              </button>
+                            </td>
+                            <td className="bg-white p-4 text-center">
+                              <button
+                                onClick={() =>
+                                  navigate(`/doctor/${item._id}/book-appointment`)
+                                }
+                                className="px-4 py-1.5 text-xs font-medium rounded-md bg-blue-500 text-white hover:bg-blue-600"
+                              >
+                                Book Appointment
                               </button>
                             </td>
                           </tr>
@@ -1238,11 +1264,10 @@ const FeedbackFollowUp = () => {
                   <button
                     onClick={() => paginate(currentPage - 1)}
                     disabled={currentPage === 1}
-                    className={`px-3 py-1 border rounded-md ${
-                      currentPage === 1
-                        ? "bg-gray-100 cursor-not-allowed"
-                        : "hover:bg-blue-200"
-                    }`}
+                    className={`px-3 py-1 border rounded-md ${currentPage === 1
+                      ? "bg-gray-100 cursor-not-allowed"
+                      : "hover:bg-blue-200"
+                      }`}
                   >
                     Previous
                   </button>
@@ -1265,11 +1290,10 @@ const FeedbackFollowUp = () => {
                           <button
                             key={index}
                             onClick={() => paginate(pageNum)}
-                            className={`px-3 py-1 border rounded-md ${
-                              currentPage === pageNum
-                                ? "bg-blue-300"
-                                : "hover:bg-blue-200"
-                            }`}
+                            className={`px-3 py-1 border rounded-md ${currentPage === pageNum
+                              ? "bg-blue-300"
+                              : "hover:bg-blue-200"
+                              }`}
                           >
                             {pageNum}
                           </button>
@@ -1282,11 +1306,10 @@ const FeedbackFollowUp = () => {
                   <button
                     onClick={() => paginate(currentPage + 1)}
                     disabled={currentPage === totalNewPatientPages}
-                    className={`px-3 py-1 border rounded-md ${
-                      currentPage === totalNewPatientPages
-                        ? "bg-gray-100 cursor-not-allowed"
-                        : "hover:bg-blue-200"
-                    }`}
+                    className={`px-3 py-1 border rounded-md ${currentPage === totalNewPatientPages
+                      ? "bg-gray-100 cursor-not-allowed"
+                      : "hover:bg-blue-200"
+                      }`}
                   >
                     Next
                   </button>
@@ -1535,8 +1558,10 @@ const FeedbackFollowUp = () => {
                             </button>
                           </td>
                           <td className="bg-white p-4 text-center">
-                            <button className="px-4 py-1.5 text-sm font-medium rounded-md text-white bg-green-500 hover:bg-green-600">
+                            <button className="px-4 py-1.5 text-sm font-medium rounded-md text-white bg-green-500 hover:bg-green-600
+                            "  onClick={() => makeCall(item)}>
                               Call
+
                             </button>
                           </td>
                           <td className="bg-gray-100 p-4 text-center">
@@ -1602,11 +1627,10 @@ const FeedbackFollowUp = () => {
                   <button
                     onClick={() => paginate(currentPage - 1)}
                     disabled={currentPage === 1}
-                    className={`px-3 py-1 border rounded-md ${
-                      currentPage === 1
-                        ? "bg-gray-100 cursor-not-allowed"
-                        : "hover:bg-blue-200"
-                    }`}
+                    className={`px-3 py-1 border rounded-md ${currentPage === 1
+                      ? "bg-gray-100 cursor-not-allowed"
+                      : "hover:bg-blue-200"
+                      }`}
                   >
                     Previous
                   </button>
@@ -1628,11 +1652,10 @@ const FeedbackFollowUp = () => {
                         <button
                           key={index}
                           onClick={() => paginate(pageNum)}
-                          className={`px-3 py-1 border rounded-md ${
-                            currentPage === pageNum
-                              ? "bg-blue-300"
-                              : "hover:bg-blue-200"
-                          }`}
+                          className={`px-3 py-1 border rounded-md ${currentPage === pageNum
+                            ? "bg-blue-300"
+                            : "hover:bg-blue-200"
+                            }`}
                         >
                           {pageNum}
                         </button>
@@ -1644,11 +1667,10 @@ const FeedbackFollowUp = () => {
                   <button
                     onClick={() => paginate(currentPage + 1)}
                     disabled={currentPage === totalPages}
-                    className={`px-3 py-1 border rounded-md ${
-                      currentPage === totalPages
-                        ? "bg-gray-100 cursor-not-allowed"
-                        : "hover:bg-blue-200"
-                    }`}
+                    className={`px-3 py-1 border rounded-md ${currentPage === totalPages
+                      ? "bg-gray-100 cursor-not-allowed"
+                      : "hover:bg-blue-200"
+                      }`}
                   >
                     Next
                   </button>
@@ -1779,7 +1801,7 @@ const FeedbackFollowUp = () => {
                       </thead>
                       <tbody>
                         {patientDetails.logs &&
-                        patientDetails.logs.length > 0 ? (
+                          patientDetails.logs.length > 0 ? (
                           patientDetails.logs.map((log, idx) => (
                             <tr key={idx} className="border-b border-blue-200">
                               <td className="bg-white p-3 text-gray-600 text-sm">

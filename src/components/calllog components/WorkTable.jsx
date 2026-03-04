@@ -171,7 +171,7 @@ const TabSwitcher = () => {
   useEffect(() => {
   const fetchDashboardStats = async () => {
     try {
-      const res = await fetch(`${API_URL}/api/patient/dashboard-statistics`);
+      const res = await fetch(`${API_URL}/api/doctor/dashboard-statistics`);
       const data = await res.json();
 
       if (data.success) {
@@ -202,7 +202,7 @@ const TabSwitcher = () => {
   const fetchAppointmentCounts = async (classification = 'acute', newExisting = 'New') => {
   try {
     setCountsLoading(true);
-    const response = await axios.patch(`${API_URL}/api/patient/sort-classification`, {
+    const response = await axios.patch(`${API_URL}/api/doctor/sort-classification`, {
       classification: classification,
       newExisting: newExisting
     });
@@ -1448,6 +1448,30 @@ const handleTabChange = (tab) => {
     </button>
   );
 
+    const makeVoiceCall = async (patient) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await axios.post(
+      `${API_URL}/api/call/call-patient`,
+      {
+        patientId: patient._id,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    if (response.status === 200) {
+      alert("📞 Call initiated successfully!");
+    }
+  } catch (error) {
+    console.error("Voice Call Error:", error.response?.data || error.message);
+    alert(error.response?.data?.message || "Call failed");
+  }
+};
   const handleAction = async (action, item) => {
     const isMshipTable = selectedFollowType === "Payment";
 
@@ -1471,7 +1495,7 @@ const handleTabChange = (tab) => {
         handleJoinRoom(item);
         break;
         case "VoiceCall":
-    alert(`Calling ${item.phone}`);
+      makeVoiceCall(item);
     const token = localStorage.getItem("token");
     fetch(`${API_URL}/api/doctor/${item._id}/increment-call`, {
         method: "PATCH",

@@ -89,7 +89,7 @@ const [countsLoading, setCountsLoading] = useState(true);
   useEffect(() => {
   const fetchDashboardStats = async () => {
     try {
-      const res = await fetch(`${API_URL}/api/patient/dashboard-statistics`);
+      const res = await fetch(`${API_URL}/api/doctor/dashboard-statistics`);
       const data = await res.json();
 
       if (data.success) {

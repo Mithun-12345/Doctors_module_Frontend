@@ -2,35 +2,41 @@ import React, { useState, useEffect } from "react";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { DateCalendar } from "@mui/x-date-pickers/DateCalendar";
+import DoctorLayout from "/src/components/doctor components/DoctorLayout.jsx";
 import dayjs from "dayjs";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import Select from "react-select";
-import config from "../../config";
-import Layout from "./Layout";
 
+import config from "../../config";
+
+import { useParams } from "react-router-dom";
 const API_URL = config.API_URL;
 
 const NewAppointment = () => {
   const navigate = useNavigate();
+  const [patientData, setPatientData] = useState(null);
+  const [bookingSuccess, setBookingSuccess] = useState(false);
   const [startDate, setStartDate] = useState(null);
   const [selectedTime, setSelectedTime] = useState(null);
   const [availableSlots, setAvailableSlots] = useState([]);
   const [user, setUser] = useState(null);
   const [reservedAppointment, setReservedAppointment] = useState(null);
-  const [timeSlots, setTimeSlots] = useState({ 
-  Normal: [], 
-  "Post Working Hours": [], 
-  Weekoff: [] 
-});
+  const { patientId } = useParams();
+  const [timeSlots, setTimeSlots] = useState({
+
+    Normal: [],
+    "Post Working Hours": [],
+    Weekoff: []
+  });
   const [isLoadingSlots, setIsLoadingSlots] = useState(false);
   const [selectedSlotPrice, setSelectedSlotPrice] = useState(null);
   const [paymentStatus, setPaymentStatus] = useState(null);
   const [symptomInput, setSymptomInput] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState(null);
-
-  const [consultingForOptions, setConsultingForOptions] = useState([]);
+  const [patientDetails, setPatientDetails] = useState(null);
+  const [loadingPatient, setLoadingPatient] = useState(true);
+  const [patientError, setPatientError] = useState("");
   const [consultingFor, setConsultingFor] = useState(null);
   const [consultingReason, setConsultingReason] = useState(null);
   const [symptom, setSymptom] = useState("");
@@ -45,7 +51,36 @@ const NewAppointment = () => {
   const today = dayjs();
   const minDate = today;
   const maxDate = today.add(1, "month");
+  useEffect(() => {
+    const fetchPatientData = async () => {
+      if (!patientId) return;
 
+      try {
+        const token = localStorage.getItem("token");
+
+        const res = await axios.get(
+          `${API_URL}/api/doctor/getPatientWithAppointments/${patientId}`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+        console.log(res, "response")
+        setPatientData(res.data.patient);
+      } catch (error) {
+        console.error("Error fetching patient:", error);
+      } finally {
+        setLoadingPatient(false);
+      }
+    };
+
+    fetchPatientData();
+  }, [patientId]);
+  console.log(patientId, "patientId")
+  useEffect(() => {
+    if (patientId) {
+      setConsultingFor({ value: patientId, label: "Selected Patient" });
+    }
+  }, [patientId]);
   const consultingReasons = [
     "Accidents",
     "Acute Back Pain",
@@ -128,24 +163,27 @@ const NewAppointment = () => {
     "Other",
   ];
 
+  // const consultingReasonOptions = consultingReasons.map((reason) => ({
+  //   value: reason,
+  //   label: reason,
+  // }));
   const consultingReasonOptions = consultingReasons.map((reason) => ({
     value: reason,
     label: reason,
   }));
-
   // Load Razorpay Script
-  useEffect(() => {
-    const script = document.createElement("script");
-    script.src = "https://checkout.razorpay.com/v1/checkout.js";
-    script.async = true;
-    script.onload = () => setIsRazorpayLoaded(true);
-    script.onerror = () => console.error("Razorpay script failed to load");
-    document.body.appendChild(script);
+  // useEffect(() => {
+  //   const script = document.createElement("script");
+  //   script.src = "https://checkout.razorpay.com/v1/checkout.js";
+  //   script.async = true;
+  //   script.onload = () => setIsRazorpayLoaded(true);
+  //   script.onerror = () => console.error("Razorpay script failed to load");
+  //   document.body.appendChild(script);
 
-    return () => {
-      document.body.removeChild(script);
-    };
-  }, []);
+  //   return () => {
+  //     document.body.removeChild(script);
+  //   };
+  // }, []);
 
   // Get user info from token
   useEffect(() => {
@@ -161,30 +199,30 @@ const NewAppointment = () => {
   }, []);
 
   // Fetch family members and set consultingFor options
-  useEffect(() => {
-    const fetchFamilyMembers = async () => {
-      const token = localStorage.getItem("token");
-      try {
-        const res = await axios.get(`${API_URL}/api/patient/getFamilyMembers`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const userId = JSON.parse(atob(token.split(".")[1])).id;
-        const options = [
-          { value: userId, label: "Self" },
-          ...res.data.familyMembers.map((member) => ({
-            value: member.id,
-            label: member.relationship,
-          })),
-        ];
-        setConsultingForOptions(options);
-        setConsultingFor(options[0]); // Default to Self
-      } catch (err) {
-        console.error("Error fetching family members:", err);
-        setErrorMessage("Failed to load family members");
-      }
-    };
-    fetchFamilyMembers();
-  }, []);
+  // useEffect(() => {
+  //   const fetchFamilyMembers = async () => {
+  //     const token = localStorage.getItem("token");
+  //     try {
+  //       const res = await axios.get(`${API_URL}/api/patient/getFamilyMembers`, {
+  //         headers: { Authorization: `Bearer ${token}` },
+  //       });
+  //       const userId = JSON.parse(atob(token.split(".")[1])).id;
+  //       const options = [
+  //         { value: userId, label: "Self" },
+  //         ...res.data.familyMembers.map((member) => ({
+  //           value: member.id,
+  //           label: member.relationship,
+  //         })),
+  //       ];
+  //       setConsultingForOptions(options);
+  //       setConsultingFor(options[0]); // Default to Self
+  //     } catch (err) {
+  //       console.error("Error fetching family members:", err);
+  //       setErrorMessage("Failed to load family members");
+  //     }
+  //   };
+  //   fetchFamilyMembers();
+  // }, []);
 
   // Fetch available slots when date changes
   useEffect(() => {
@@ -192,10 +230,13 @@ const NewAppointment = () => {
       if (startDate) {
         const token = localStorage.getItem("token");
         const appointmentDate = dayjs(startDate).format("YYYY-MM-DD");
+        console.log("Sending payload:", {
+
+        });
         try {
           const res = await axios.post(
-            `${API_URL}/api/patient/checkSlots`,
-            { appointmentDate },
+            `${API_URL}/api/doctor/checkSlots`,
+            { appointmentDate, patientId },
             { headers: { Authorization: `Bearer ${token}` } }
           );
           setAvailableSlots(res.data.availableSlots || []);
@@ -218,7 +259,7 @@ const NewAppointment = () => {
 
         try {
           const res = await axios.post(
-            `${API_URL}/api/patient/appointmentBookingTimeSlot`,
+            `${API_URL}/api/doctor/appointmentBookingTimeSlot`,
             { date: formattedDate },
             {
               headers: {
@@ -248,32 +289,32 @@ const NewAppointment = () => {
   }, [startDate]);
 
   // Check appointment status periodically if reserved
-  useEffect(() => {
-    let interval;
-    if (reservedAppointment) {
-      interval = setInterval(async () => {
-        try {
-          const token = localStorage.getItem("token");
-          const res = await axios.get(
-            `${API_URL}/api/payments/appointment-status/${reservedAppointment.appointmentId}`,
-            { headers: { Authorization: `Bearer ${token}` } }
-          );
+  // useEffect(() => {
+  //   let interval;
+  //   if (reservedAppointment) {
+  //     interval = setInterval(async () => {
+  //       try {
+  //         const token = localStorage.getItem("token");
+  //         const res = await axios.get(
+  //           `${API_URL}/api/payments/appointment-status/${reservedAppointment.appointmentId}`,
+  //           { headers: { Authorization: `Bearer ${token}` } }
+  //         );
 
-          if (res.data.status === "confirmed") {
-            clearInterval(interval);
-            navigate("/home", { state: { bookingSuccess: true } });
-          } else if (res.data.isExpired) {
-            clearInterval(interval);
-            setErrorMessage("Reservation expired. Please try again.");
-            setReservedAppointment(null);
-          }
-        } catch (err) {
-          console.error("Error checking appointment status:", err);
-        }
-      }, 5000);
-    }
-    return () => clearInterval(interval);
-  }, [reservedAppointment, navigate]);
+  //         if (res.data.status === "confirmed") {
+  //           clearInterval(interval);
+  //           navigate("/home", { state: { bookingSuccess: true } });
+  //         } else if (res.data.isExpired) {
+  //           clearInterval(interval);
+  //           setErrorMessage("Reservation expired. Please try again.");
+  //           setReservedAppointment(null);
+  //         }
+  //       } catch (err) {
+  //         console.error("Error checking appointment status:", err);
+  //       }
+  //     }, 5000);
+  //   }
+  //   return () => clearInterval(interval);
+  // }, [reservedAppointment, navigate]);
 
   const validateForm = () => {
     const errors = {};
@@ -290,6 +331,8 @@ const NewAppointment = () => {
 
   const handleBookClick = () => {
     if (validateForm()) {
+      setReservedAppointment(null);   // clear old booking
+      setErrorMessage("");
       setIsPopupOpen(true);
     }
   };
@@ -297,78 +340,76 @@ const NewAppointment = () => {
   const handleTimeSlotSelect = (slot, category) => {
     setSelectedTime(slot.time);
     setSelectedSlotPrice({ price: slot.price, category });
+    setReservedAppointment(null);
+    setErrorMessage("");
   };
 
   const reserveAppointment = async () => {
     setIsProcessing(true);
     setErrorMessage("");
-    const token = localStorage.getItem("token");
-    const appointmentDate = dayjs(startDate).format("YYYY-MM-DD");
-
-    const payload = {
-  appointmentDate,
-  timeSlot: selectedTime,
-  consultingFor: consultingFor?.value,  // <-- Use the selected value
-  consultingReason: analysisResult?.classification || "",
-  symptom: symptomInput,
-};
-
-    console.log("Sending payload:", payload);
 
     try {
-      const bookRes = await axios.post(
-        `${API_URL}/api/patient/bookAppointment`,
+      const token = localStorage.getItem("token");
+      const appointmentDate = dayjs(startDate).format("YYYY-MM-DD");
+
+      const payload = {
+        patientId,
+        appointmentDate,
+        timeSlot: selectedTime,
+        consultingReason: analysisResult?.classification || "",
+        symptom: symptomInput || "",
+        
+        
+      };
+
+      console.log("Sending payload:", payload);
+
+      const res = await axios.post(
+        `${API_URL}/api/doctor/bookAppointment`,
         payload,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      if (bookRes.data.success) {
-        setReservedAppointment({
-          appointmentId: bookRes.data.appointmentId,
-          amount: bookRes.data.amount,
-          expiresAt: bookRes.data.expiresAt,
-        });
-        return bookRes.data;
-      } else {
-        throw new Error(
-          bookRes.data.message || "Failed to reserve appointment"
-        );
+      if (!res.data.success) {
+        throw new Error(res.data.message || "Booking failed");
       }
+
+      // ✅ Set simple success state (NO payment fields)
+      setReservedAppointment({
+        appointmentId: res.data.appointmentId,
+      });
+
+      return res.data;
+
     } catch (err) {
-      console.error("Error reserving appointment:", err);
+      console.error("Error booking appointment:", err);
 
-      let errorMsg = "Booking failed. Please try again.";
-      if (err.response?.data?.message) {
-        errorMsg = err.response.data.message;
-      } else if (err.response?.data?.error) {
-        errorMsg = err.response.data.error;
-      } else if (err.message) {
-        errorMsg = err.message;
-      }
-
-      console.log("Full error response:", err.response?.data);
+      const errorMsg =
+        err.response?.data?.message ||
+        err.message ||
+        "Booking failed. Please try again.";
 
       setErrorMessage(errorMsg);
-      throw err;
+      return null;   // ❗ don’t throw error now
     } finally {
       setIsProcessing(false);
     }
   };
 
-  const createRazorpayOrder = async (appointmentId, amount) => {
-    try {
-      const token = localStorage.getItem("token");
-      const orderRes = await axios.post(
-        `${API_URL}/api/payments/create-order`,
-        { amount: amount * 100, appointmentId },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      return orderRes.data.order;
-    } catch (err) {
-      console.error("Error creating order:", err);
-      throw err;
-    }
-  };
+  // const createRazorpayOrder = async (appointmentId, amount) => {
+  //   try {
+  //     const token = localStorage.getItem("token");
+  //     const orderRes = await axios.post(
+  //       `${API_URL}/api/payments/create-order`,
+  //       { amount: amount * 100, appointmentId },
+  //       { headers: { Authorization: `Bearer ${token}` } }
+  //     );
+  //     return orderRes.data.order;
+  //   } catch (err) {
+  //     console.error("Error creating order:", err);
+  //     throw err;
+  //   }
+  // };
 
   const handleAnalyzeSymptom = async () => {
     if (!symptomInput.trim()) return;
@@ -443,73 +484,53 @@ const NewAppointment = () => {
     }
   };
 
-  const handleConfirmClick = async () => {
-    if (!isRazorpayLoaded) {
-      setErrorMessage("Payment system is loading. Please wait...");
-      return;
+ const handleConfirmClick = async (isEmergency) => {
+  setIsProcessing(true);
+  setErrorMessage("");
+
+  try {
+    const token = localStorage.getItem("token");
+    const appointmentDate = dayjs(startDate).format("YYYY-MM-DD");
+
+    const payload = {
+      patientId,
+      appointmentDate,
+      timeSlot: selectedTime,
+      consultingReason: analysisResult?.classification || "",
+      symptom: symptomInput || "",
+      isEmergency: isEmergency, 
+    };
+
+    const res = await axios.post(
+      `${API_URL}/api/doctor/bookAppointment`,
+      payload,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+
+    if (res.data.success) {
+      setReservedAppointment({
+        appointmentId: res.data.appointmentId,
+        message: isEmergency
+          ? "Emergency appointment booked successfully!"
+          : "Appointment booked successfully!",
+      });
+
+      setErrorMessage("");
+
+      // Auto close popup and navigate after 2s
+      setTimeout(() => {
+        navigate("/appointments/list", { state: { bookingSuccess: true } });
+      }, 2000);
     }
-
-    setIsProcessing(true);
-    setErrorMessage("");
-
-    try {
-      const reservation = await reserveAppointment();
-      if (!reservation) return;
-
-      const order = await createRazorpayOrder(
-        reservation.appointmentId,
-        selectedSlotPrice.price
-      );
-
-      const options = {
-        key: "rzp_test_4yi0hOj6P7akiv",
-        amount: selectedSlotPrice.price * 100,
-        currency: "INR",
-        name: "Doctor Consultation",
-        description: "Appointment Booking",
-        order_id: order.id,
-        handler: async (response) => {
-          try {
-            setPaymentStatus("verifying");
-            await verifyPayment(response, reservation.appointmentId);
-            setPaymentStatus("verified");
-          } catch (err) {
-            setPaymentStatus("failed");
-            setErrorMessage(
-              "Payment verification failed. Please contact support."
-            );
-            console.error("Payment verification error:", err);
-          }
-        },
-        prefill: {
-          name: user?.user?.name || "John Doe",
-          email: user?.user?.email || "example@gmail.com",
-          contact: user?.user?.phone || "9000000000",
-        },
-        theme: {
-          color: "#0e76a8",
-        },
-        modal: {
-          ondismiss: () => {
-            setPaymentStatus("cancelled");
-            setErrorMessage(
-              "Payment was cancelled. Your reservation will expire shortly."
-            );
-          },
-        },
-      };
-
-      const rzp = new window.Razorpay(options);
-      rzp.open();
-    } catch (err) {
-      console.error("Booking error:", err);
-      if (!err.response) {
-        setErrorMessage("Network error. Please check your connection.");
-      }
-    } finally {
-      setIsProcessing(false);
-    }
-  };
+  } catch (err) {
+    console.error("Booking error:", err);
+    setErrorMessage(
+      err.response?.data?.message || "Booking failed. Please try again."
+    );
+  } finally {
+    setIsProcessing(false);
+  }
+};
 
   const handlePopupClose = () => {
     setIsPopupOpen(false);
@@ -518,7 +539,7 @@ const NewAppointment = () => {
   };
 
   return (
-    <Layout>
+    <DoctorLayout>
       <div className="max-w-4xl mx-auto py-10 grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white p-6 rounded-lg shadow space-y-6">
           <h2 className="text-xl font-bold text-center bg-blue-100 p-3 rounded">
@@ -529,12 +550,21 @@ const NewAppointment = () => {
             <label className="font-semibold block mb-2">
               Consulting Person
             </label>
-            <Select
-              options={consultingForOptions}
-              value={consultingFor}
-              onChange={setConsultingFor}
-              placeholder="Select consulting person..."
-            />
+            <div>
+              <label className="font-semibold block mb-2">
+                Booking For
+              </label>
+              <div className="p-2 border rounded bg-gray-100">
+                Selected Patient :{" "}
+                {loadingPatient ? (
+                  "Loading..."
+                ) : patientData ? (
+                  <span className="font-bold">{patientData.name}</span>
+                ) : (
+                  "Unable to fetch patient details"
+                )}
+              </div>
+            </div>
             {formErrors.consultingFor && (
               <p className="text-red-500 text-sm mt-1">
                 {formErrors.consultingFor}
@@ -614,7 +644,7 @@ const NewAppointment = () => {
 
           <div>
             <label className="text-lg font-semibold block mb-2">Pick Your Time</label>
-            
+
             {timeSlots.Normal && timeSlots.Normal.length > 0 && (
               <div className="mb-4">
                 <h3 className="text-sm font-semibold text-gray-700 mb-2">Normal Hours</h3>
@@ -623,11 +653,10 @@ const NewAppointment = () => {
                     <button
                       key={slot.time}
                       onClick={() => handleTimeSlotSelect(slot, "Normal")}
-                      className={`p-2 rounded border transition ${
-                        selectedTime === slot.time
-                          ? "bg-blue-500 text-white"
-                          : "bg-white hover:bg-blue-100"
-                      }`}
+                      className={`p-2 rounded border transition ${selectedTime === slot.time
+                        ? "bg-blue-500 text-white"
+                        : "bg-white hover:bg-blue-100"
+                        }`}
                     >
                       <div className="text-sm">{slot.time}</div>
                       <div className="text-xs">₹{slot.price}</div>
@@ -648,11 +677,10 @@ const NewAppointment = () => {
                     <button
                       key={slot.time}
                       onClick={() => handleTimeSlotSelect(slot, "Post Working Hours")}
-                      className={`p-2 rounded border transition ${
-                        selectedTime === slot.time
-                          ? "bg-blue-500 text-white"
-                          : "bg-white hover:bg-blue-100"
-                      }`}
+                      className={`p-2 rounded border transition ${selectedTime === slot.time
+                        ? "bg-blue-500 text-white"
+                        : "bg-white hover:bg-blue-100"
+                        }`}
                     >
                       <div className="text-sm">{slot.time}</div>
                       <div className="text-xs">₹{slot.price}</div>
@@ -663,34 +691,33 @@ const NewAppointment = () => {
             )}
 
             {timeSlots.Weekoff && timeSlots.Weekoff.length > 0 && (
-  <div className="mb-4">
-    <h3 className="text-sm font-semibold text-gray-700 mb-2">Weekend/Holiday</h3>
-    <p className="text-xs text-blue-600 mb-2 bg-blue-50 p-2 rounded border border-blue-200">
-      ℹ️ Weekend and holiday slots are available at increased rates.
-    </p>
-    <div className="grid grid-cols-3 gap-2">
-      {timeSlots.Weekoff.map((slot) => (
-        <button
-          key={slot.time}
-          onClick={() => handleTimeSlotSelect(slot, "Weekoff")}
-          className={`p-2 rounded border transition ${
-            selectedTime === slot.time
-              ? "bg-blue-500 text-white"
-              : "bg-white hover:bg-blue-100"
-          }`}
-        >
-          <div className="text-sm">{slot.time}</div>
-          <div className="text-xs">₹{slot.price}</div>
-        </button>
-      ))}
-    </div>
-  </div>
-)}
+              <div className="mb-4">
+                <h3 className="text-sm font-semibold text-gray-700 mb-2">Weekend/Holiday</h3>
+                <p className="text-xs text-blue-600 mb-2 bg-blue-50 p-2 rounded border border-blue-200">
+                  ℹ️ Weekend and holiday slots are available at increased rates.
+                </p>
+                <div className="grid grid-cols-3 gap-2">
+                  {timeSlots.Weekoff.map((slot) => (
+                    <button
+                      key={slot.time}
+                      onClick={() => handleTimeSlotSelect(slot, "Weekoff")}
+                      className={`p-2 rounded border transition ${selectedTime === slot.time
+                        ? "bg-blue-500 text-white"
+                        : "bg-white hover:bg-blue-100"
+                        }`}
+                    >
+                      <div className="text-sm">{slot.time}</div>
+                      <div className="text-xs">₹{slot.price}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {formErrors.time && (
               <p className="text-red-500 text-sm mt-1">{formErrors.time}</p>
             )}
-            
+
             {selectedSlotPrice && (
               <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded">
                 <p className="text-sm">
@@ -737,7 +764,7 @@ const NewAppointment = () => {
                   </p>
                 )}
                 <p>
-                  <strong>Consulting For:</strong> {consultingFor?.label}
+                  <strong>Consulting For:</strong> {patientData.name}
                 </p>
                 {consultingReason && (
                   <p>
@@ -749,46 +776,44 @@ const NewAppointment = () => {
                     <strong>Symptom:</strong> {symptom}
                   </p>
                 )}
-                {reservedAppointment && (
-                  <p className="text-yellow-600">
-                    <strong>Note:</strong> This slot is reserved for you until{" "}
-                    {new Date(
-                      reservedAppointment.expiresAt
-                    ).toLocaleTimeString()}
-                  </p>
-                )}
+
               </div>
 
-              {errorMessage && (
-                <p
-                  className={`mb-4 text-sm ${
-                    paymentStatus === "failed"
-                      ? "text-red-500"
-                      : "text-yellow-600"
-                  }`}
-                >
-                  {errorMessage}
+              {reservedAppointment && (
+                <p className="text-green-600 font-semibold">
+                  {reservedAppointment.message}
                 </p>
+              )}
+
+              {errorMessage && !reservedAppointment && (
+                <p className="text-red-500">{errorMessage}</p>
               )}
 
               <div className="flex gap-4 justify-end">
                 {!reservedAppointment ? (
                   <>
+                    
                     <button
-                      onClick={handleConfirmClick}
-                      disabled={isProcessing || !isRazorpayLoaded}
-                      className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                      onClick={() => handleConfirmClick(false)}
+                      disabled={isProcessing}
+                      className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 disabled:opacity-50"
                     >
-                      {isProcessing
-                        ? "Processing..."
-                        : !isRazorpayLoaded
-                        ? "Loading Payment..."
-                        : "Confirm & Pay"}
+                      {isProcessing ? "Booking..." : "Confirm Booking"}
                     </button>
+
+                   
+                    <button
+                      onClick={() => handleConfirmClick(true)}
+                      disabled={isProcessing}
+                      className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 disabled:opacity-50"
+                    >
+                      Emergency
+                    </button>
+
                     <button
                       onClick={handlePopupClose}
                       disabled={isProcessing}
-                      className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 disabled:opacity-50"
+                      className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
                     >
                       Cancel
                     </button>
@@ -806,7 +831,7 @@ const NewAppointment = () => {
           </div>
         )}
       </div>
-    </Layout>
+    </DoctorLayout>
   );
 };
 
