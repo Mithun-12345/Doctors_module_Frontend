@@ -356,7 +356,7 @@ const FeedbackFollowUp = () => {
       const response = await axios.post(
         `${API_URL}/api/call/call-patient`,
         {
-          patientId: patient.patientId 
+          patientId: patient._id 
         },
         {
           headers: {
@@ -1199,12 +1199,17 @@ const FeedbackFollowUp = () => {
                               </button>
                             </td>
                             <td className="bg-gray-100 p-4 text-center">
-                              <button
-                                onClick={() => makeCall(item)} // call the function
-                                className="px-4 py-1.5 text-xs font-medium rounded-md bg-green-500 text-white hover:bg-green-600"
-                              >
-                                Call
-                              </button>
+                              <td className="bg-white p-4 text-center">
+  <button
+    onClick={() => {
+      console.log("Clicked item:", item);
+      makeCall(item);
+    }}
+    className="px-4 py-1.5 text-sm font-medium rounded-md text-white bg-green-500 hover:bg-green-600"
+  >
+    Call
+  </button>
+</td>
                             </td>
                             <td className="bg-white p-4 text-center">
                               <button
