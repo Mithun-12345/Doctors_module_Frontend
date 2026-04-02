@@ -3,6 +3,9 @@ import Select from 'react-select';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Phone } from 'lucide-react';
+import config from '../../config';
+
+const API_URL = config.API_URL;
 
 const Form= () => {
   const feetOptions = [...Array(10).keys()].map(i => ({ value: i+1, label: `${i+1} feet `}));
@@ -239,7 +242,7 @@ useEffect(() => {
   
         // Make API request
         const response = await axios.post(
-          'http://localhost:5000/api/patient/sendChronicForm',
+          `${API_URL}/api/patient/sendChronicForm`,
           dataToSend,
           {
             headers: {

@@ -2,6 +2,9 @@ import React, { useState } from 'react';
 import Select from 'react-select';
 import axios from 'axios';
 import '../App.css';
+import config from '../config';
+
+const API_URL = config.API_URL;
 
 const countries = [
   { code: 'IN', name: 'India', dialCode: '+91' },
@@ -162,7 +165,7 @@ const FirstForm = () => {
         message: `Dear ${formData.fullName},\n\nThank you for registering with our medical consultation service. We have received your request for consultation regarding ${formData.consultingReason}.\n\nOur medical team will contact you shortly.\n\nBest regards,\nMedical Consultation Team`
       };
 
-      const response = await axios.post('http://localhost:5000/api/log/send-first-message', messageData);
+      const response = await axios.post(`${API_URL}/api/log/send-first-message`, messageData);
       
       if (response.data.success) {
         console.log('Message sent successfully');
@@ -208,7 +211,7 @@ const FirstForm = () => {
           };
   
           const predictionResponse = await axios.post(
-            'http://localhost:5000/api/forms/predict',
+            `${API_URL}/api/forms/predict`,
             predictionData
           );
   
@@ -245,16 +248,14 @@ const FirstForm = () => {
         };
   
         // Create URL with query parameters if they exist
-        const apiUrl = new URL('http://localhost:5000/api/patient/sendRegForm');
-        if (referralCode) {
-          apiUrl.searchParams.append('referralCode', referralCode);
-        }
-        if (familyToken) {
-          apiUrl.searchParams.append('familyToken', familyToken);
-        }
-  
+        let apiUrl = `${API_URL}/api/patient/sendRegForm`;
+        const searchParams = new URLSearchParams();
+        if (referralCode) searchParams.append('referralCode', referralCode);
+        if (familyToken) searchParams.append('familyToken', familyToken);
+        if (searchParams.toString()) apiUrl += `?${searchParams.toString()}`;
+
         const patientResponse = await axios.post(
-          apiUrl.toString(),
+          apiUrl,
           fullFormData
         );
   

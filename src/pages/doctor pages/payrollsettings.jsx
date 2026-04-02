@@ -1,5 +1,8 @@
 import React, { useState } from "react";
 import DoctorLayout from "/src/components/doctor components/DoctorLayout.jsx";
+import config from "../../config";
+
+const API_URL = config.API_URL;
 
 const HRPayrollModule = () => {
   const [formData, setFormData] = useState({
@@ -44,7 +47,7 @@ const HRPayrollModule = () => {
       //   setError('You are not authenticated. Please log in.');
       //   return;
       // }
-      const response = await fetch("http://localhost:5000/api/payroll", {
+      const response = await fetch(`${API_URL}/api/payroll`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),

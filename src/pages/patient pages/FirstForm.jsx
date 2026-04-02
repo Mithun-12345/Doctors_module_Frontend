@@ -420,7 +420,7 @@ const FirstForm = () => {
           };
 
           const predictionResponse = await axios.post(
-            "http://localhost:5000/api/forms/predict",
+            `${API_URL}/api/forms/predict`,
             predictionData
           );
 
@@ -465,16 +465,14 @@ const FirstForm = () => {
         };
 
         // Create URL with query parameters if they exist
-        const apiUrl = new URL(`${API_URL}/api/forms/first-form`);
-        if (referralCode) {
-          apiUrl.searchParams.append("referralCode", referralCode);
-        }
-        if (familyToken) {
-          apiUrl.searchParams.append("familyToken", familyToken);
-        }
+        let apiUrl = `${API_URL}/api/forms/first-form`;
+        const searchParams = new URLSearchParams();
+        if (referralCode) searchParams.append("referralCode", referralCode);
+        if (familyToken) searchParams.append("familyToken", familyToken);
+        if (searchParams.toString()) apiUrl += `?${searchParams.toString()}`;
 
         const patientResponse = await axios.post(
-          apiUrl.toString(),
+          apiUrl,
           fullFormData
         );
 

@@ -1,5 +1,8 @@
 import React, { useEffect,useState } from "react";
 import axios from "axios";
+import config from "../../config";
+
+const API_URL = config.API_URL;
 
 const PayrollManagement = () => {
   const [activeTab, setActiveTab] = useState("payroll");
@@ -52,7 +55,7 @@ const PayrollManagement = () => {
     }
     try {
       const response = await axios.get(
-        `http://localhost:5000/api/payslip/employee/${formData.employeeID}`
+        `${API_URL}/api/payslip/employee/${formData.employeeID}`
       );
       const employee = response.data;
 
@@ -89,11 +92,11 @@ const PayrollManagement = () => {
         deductions: deductions.length ? deductions : formData.deductions, // Ensure deductions are included
       };
       
-      await axios.post("http://localhost:5000/api/payslip/payroll",dataToSubmit);
+      await axios.post(`${API_URL}/api/payslip/payroll`,dataToSubmit);
       alert("Payroll record added successfully.");
       // Automatically generate payslip after submission
       const response = await axios.get(
-        `http://localhost:5000/api/payslip/generate/${formData.employeeID}`,
+        `${API_URL}/api/payslip/generate/${formData.employeeID}`,
         { responseType: "blob" } // Fetch the payslip as a Blob for download
       );
 
@@ -126,7 +129,7 @@ const PayrollManagement = () => {
   };
   const fetchHistory = async () => {
     try {
-      const response = await axios.get("http://localhost:5000/api/payslip/history");
+      const response = await axios.get(`${API_URL}/api/payslip/history`);
       console.log(response.data);
       if (response.status === 200) {
         setHistoryData(response.data);
@@ -354,7 +357,7 @@ const PayrollManagement = () => {
                   <td className="px-4 py-4">
         {/* Link to download the PDF */}
         <a
-          href={`http://localhost:5000${item.pdfUrl}`}
+          href={`${API_URL}${item.pdfUrl}`}
           target="_blank"
           rel="noopener noreferrer"
           className="text-blue-600 hover:underline"

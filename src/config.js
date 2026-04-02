@@ -1,6 +1,6 @@
-const config = {
-  API_URL: "https://clinic-backend-jdob.onrender.com",
-  //API_URL: "http://localhost:5000",
-};
+const API_URL = import.meta.env.VITE_API_URL || "";
 
+const config = { API_URL };
+
+export { API_URL };
 export default config;

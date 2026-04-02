@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import config from "../../config";
+
+const API_URL = config.API_URL;
 
 function ShiftDetails() {
   const [shifts, setShifts] = useState([]);
@@ -13,7 +16,7 @@ function ShiftDetails() {
     const fetchShifts = async () => {
       try {
         const token = localStorage.getItem("token");
-        const response = await axios.get("http://localhost:5000/api/shift/getshift", {
+        const response = await axios.get(`${API_URL}/api/shift/getshift`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -42,7 +45,7 @@ function ShiftDetails() {
     try {
       const token = localStorage.getItem("token");
       const response = await axios.post(
-        "http://localhost:5000/api/shift/saveshift",
+        `${API_URL}/api/shift/saveshift`,
         { shifts },
         {
           headers: {

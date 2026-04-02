@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import DatePicker from 'react-datepicker';
+import config from '../../config';
+
+const API_URL = config.API_URL;
 // import 'react-datepicker/dist/react-datepicker.css'; // Add CSS for date picker
 
 const LeaveTable = () => {
@@ -20,7 +23,7 @@ const LeaveTable = () => {
   useEffect(() => {
     const fetchLeaveDetails = async () => {
       try {
-        const response = await axios.get('http://localhost:5000/api/leaves/all'); // Adjust URL as needed
+        const response = await axios.get(`${API_URL}/api/leaves/all`);
          // Ensure response.data is an array
          if (Array.isArray(response.data)) {
           setLeaves(response.data);
@@ -50,7 +53,7 @@ const LeaveTable = () => {
     if (name && fromDate && toDate && description) {
       try {
         // Sending leave details to the backend
-        const response = await axios.post('http://localhost:5000/api/leaves/add', {
+        const response = await axios.post(`${API_URL}/api/leaves/add`, {
           name,
           fromDate,
           toDate,

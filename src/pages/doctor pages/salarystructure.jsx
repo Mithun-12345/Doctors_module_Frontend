@@ -106,7 +106,7 @@ const SalaryStructure = () => {
 
   const fetchSalaryData = async () => {
     try {
-      const response = await axios.get("https://clinic-backend-jdob.onrender.com/api/salary/fetch");
+      const response = await axios.get(`${API_URL}/api/salary/fetch`);
       setSalaryData(response.data);
     } catch (error) {
       console.error("Error fetching salary data", error);
@@ -223,10 +223,10 @@ const SalaryStructure = () => {
   const handleSubmit = async () => {
     try {
       if (isEditing) {
-        await axios.put(`http://localhost:5000/api/salary/update/${formData.employeeID}`, formData);
+        await axios.put(`${API_URL}/api/salary/update/${formData.employeeID}`, formData);
         alert("Salary structure updated successfully!");
       } else {
-        await axios.post("http://localhost:5000/api/salary/save", formData);
+        await axios.post(`${API_URL}/api/salary/save`, formData);
         alert("Salary structure saved successfully!");
       }
       setIsModalOpen(false);
@@ -258,7 +258,7 @@ const SalaryStructure = () => {
 
   const fetchDoctorById = async (employeeID) => {
     try {
-      const response = await axios.get(`http://localhost:5000/api/salary/retrive/${employeeID}`);
+      const response = await axios.get(`${API_URL}/api/salary/retrive/${employeeID}`);
       const salaryData = response.data;
   
       if (!salaryData || !salaryData.employeeID) {
@@ -294,7 +294,7 @@ const SalaryStructure = () => {
 
   const handleDeleteSalary = async (employeeID) => {
     try {
-      await axios.delete(`http://localhost:5000/api/salary/delete/${employeeID}`);
+      await axios.delete(`${API_URL}/api/salary/delete/${employeeID}`);
       alert("Salary structure deleted successfully!");
       fetchSalaryData();
     } catch (error) {
